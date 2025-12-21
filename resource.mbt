@@ -1,7 +1,7 @@
 // AttributeValue represents a value that can be stored as a Resource attribute
 
 ///|
-pub enum AttributeValue {
+pub(all) enum AttributeValue {
   String(String)
   Int(Int)
   Bool(Bool)

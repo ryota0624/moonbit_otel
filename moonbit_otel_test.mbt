@@ -149,3 +149,202 @@ test "Resource can store multiple attribute types" {
   assert_eq(res.get_bool("debug"), Some(true))
   assert_eq(res.get_double("cpu_limit"), Some(2.5))
 }
+
+// Tests for Span and Tracer
+
+///|
+test "SpanContext::new creates a valid span context" {
+  let ctx = SpanContext::new(
+    "12345678901234567890123456789012", "1234567890123456", 0x01, false,
+  )
+  assert_true(ctx.is_valid())
+  assert_true(ctx.is_sampled())
+  assert_eq(ctx.trace_id, "12345678901234567890123456789012")
+  assert_eq(ctx.span_id, "1234567890123456")
+}
+
+///|
+test "SpanContext::is_valid returns false for zero IDs" {
+  let ctx = SpanContext::new(
+    "00000000000000000000000000000000", "0000000000000000", 0x00, false,
+  )
+  assert_false(ctx.is_valid())
+}
+
+///|
+test "generate_trace_id creates 32-character hex string" {
+  let trace_id = generate_trace_id()
+  assert_eq(trace_id.length(), 32)
+}
+
+///|
+test "generate_span_id creates 16-character hex string" {
+  let span_id = generate_span_id()
+  assert_eq(span_id.length(), 16)
+}
+
+///|
+test "Span::new creates a new span" {
+  let ctx = SpanContext::new(
+    generate_trace_id(),
+    generate_span_id(),
+    0x01,
+    false,
+  )
+  let resource = Resource::empty().with_string(service_name, "test-service")
+  let span = Span::new(
+    ctx,
+    "test-span",
+    SpanKind::Internal,
+    1000L,
+    resource,
+    None,
+  )
+  assert_eq(span.name, "test-span")
+  assert_eq(span.kind, SpanKind::Internal)
+  assert_eq(span.start_time, 1000L)
+  assert_false(span.is_ended())
+}
+
+///|
+test "Span::set_attribute adds an attribute" {
+  let ctx = SpanContext::new(
+    generate_trace_id(),
+    generate_span_id(),
+    0x01,
+    false,
+  )
+  let resource = Resource::empty()
+  let span = Span::new(
+    ctx,
+    "test-span",
+    SpanKind::Internal,
+    1000L,
+    resource,
+    None,
+  ).set_attribute("http.method", AttributeValue::String("GET"))
+  assert_eq(
+    span.attributes.get("http.method"),
+    Some(AttributeValue::String("GET")),
+  )
+}
+
+///|
+test "Span::add_event adds an event to the span" {
+  let ctx = SpanContext::new(
+    generate_trace_id(),
+    generate_span_id(),
+    0x01,
+    false,
+  )
+  let resource = Resource::empty()
+  let span = Span::new(
+    ctx,
+    "test-span",
+    SpanKind::Internal,
+    1000L,
+    resource,
+    None,
+  )
+  let event = SpanEvent::new("error", 2000L, Map::new())
+  let span_with_event = span.add_event(event)
+  assert_eq(span_with_event.events.length(), 1)
+  assert_eq(span_with_event.events[0].name, "error")
+}
+
+///|
+test "Span::end marks the span as ended" {
+  let ctx = SpanContext::new(
+    generate_trace_id(),
+    generate_span_id(),
+    0x01,
+    false,
+  )
+  let resource = Resource::empty()
+  let span = Span::new(
+    ctx,
+    "test-span",
+    SpanKind::Internal,
+    1000L,
+    resource,
+    None,
+  ).end(3000L)
+  assert_true(span.is_ended())
+  assert_eq(span.duration(), Some(2000L))
+}
+
+///|
+test "Span::set_status sets the span status" {
+  let ctx = SpanContext::new(
+    generate_trace_id(),
+    generate_span_id(),
+    0x01,
+    false,
+  )
+  let resource = Resource::empty()
+  let span = Span::new(
+    ctx,
+    "test-span",
+    SpanKind::Internal,
+    1000L,
+    resource,
+    None,
+  ).set_status(SpanStatus::Ok)
+  assert_eq(span.status, SpanStatus::Ok)
+}
+
+///|
+test "Tracer::new creates a tracer" {
+  let resource = Resource::empty().with_string(service_name, "my-service")
+  let tracer = Tracer::new("my-library", "1.0.0", resource)
+  assert_eq(tracer.name, "my-library")
+  assert_eq(tracer.version, "1.0.0")
+}
+
+///|
+test "Tracer::start_span creates a span" {
+  let resource = Resource::empty().with_string(service_name, "my-service")
+  let tracer = Tracer::new("my-library", "1.0.0", resource)
+  let span = tracer.start_span("operation", SpanKind::Server, None)
+  assert_eq(span.name, "operation")
+  assert_eq(span.kind, SpanKind::Server)
+  assert_true(span.context.is_valid())
+}
+
+///|
+test "Tracer creates child span with parent context" {
+  let resource = Resource::empty().with_string(service_name, "my-service")
+  let tracer = Tracer::new("my-library", "1.0.0", resource)
+  let parent_span = tracer.start_span("parent", SpanKind::Server, None)
+  let child_span = tracer.start_span(
+    "child",
+    SpanKind::Internal,
+    Some(parent_span.context),
+  )
+  assert_eq(child_span.context.trace_id, parent_span.context.trace_id)
+  assert_eq(child_span.parent_span_id, Some(parent_span.context.span_id))
+}
+
+///|
+test "SpanBuilder creates span with attributes" {
+  let resource = Resource::empty().with_string(service_name, "my-service")
+  let tracer = Tracer::new("my-library", "1.0.0", resource)
+  let span = tracer
+    .span_builder("http-request")
+    .with_kind(SpanKind::Client)
+    .with_attribute("http.url", AttributeValue::String("https://example.com"))
+    .with_attribute("http.status_code", AttributeValue::Int(200))
+    .with_start_time(5000L)
+    .start(tracer)
+  assert_eq(span.name, "http-request")
+  assert_eq(span.kind, SpanKind::Client)
+  assert_eq(span.start_time, 5000L)
+  assert_eq(
+    span.attributes.get("http.url"),
+    Some(AttributeValue::String("https://example.com")),
+  )
+  assert_eq(
+    span.attributes.get("http.status_code"),
+    Some(AttributeValue::Int(200)),
+  )
+}
