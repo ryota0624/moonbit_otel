@@ -1,0 +1,9 @@
+{
+  "is-main": true,
+  "import": [
+    {
+      "path": "ryota0624/moonbit_otel",
+      "alias": "lib"
+    }
+  ]
+}
