@@ -1,20 +1,76 @@
+// TraceID represents a unique 128-bit trace identifier
+
+///|
+pub struct TraceID {
+  value : String // 32-character hex string
+} derive(Eq, Show)
+
+// Create a new TraceID
+
+///|
+pub fn TraceID::new(value : String) -> TraceID {
+  { value, }
+}
+
+// Get the string value of TraceID
+
+///|
+pub fn TraceID::to_string(self : TraceID) -> String {
+  self.value
+}
+
+// Check if TraceID is valid (non-zero)
+
+///|
+pub fn TraceID::is_valid(self : TraceID) -> Bool {
+  self.value != "00000000000000000000000000000000"
+}
+
+// SpanID represents a unique 64-bit span identifier
+
+///|
+pub struct SpanID {
+  value : String // 16-character hex string
+} derive(Eq, Show)
+
+// Create a new SpanID
+
+///|
+pub fn SpanID::new(value : String) -> SpanID {
+  { value, }
+}
+
+// Get the string value of SpanID
+
+///|
+pub fn SpanID::to_string(self : SpanID) -> String {
+  self.value
+}
+
+// Check if SpanID is valid (non-zero)
+
+///|
+pub fn SpanID::is_valid(self : SpanID) -> Bool {
+  self.value != "0000000000000000"
+}
+
 // SpanContext represents the portion of a Span which must be serialized and 
 // propagated along side of a distributed context.
 
 ///|
 pub struct SpanContext {
-  trace_id : String // 128-bit trace ID (32-character hex string)
-  span_id : String // 64-bit span ID (16-character hex string)
-  trace_flags : Int // Trace flags (e.g., sampled)
-  is_remote : Bool // Whether this is a remote context
+  trace_id : TraceID
+  span_id : SpanID
+  trace_flags : Int
+  is_remote : Bool
 }
 
 // Create a new SpanContext
 
 ///|
 pub fn SpanContext::new(
-  trace_id : String,
-  span_id : String,
+  trace_id : TraceID,
+  span_id : SpanID,
   trace_flags : Int,
   is_remote : Bool,
 ) -> SpanContext {
@@ -25,8 +81,7 @@ pub fn SpanContext::new(
 
 ///|
 pub fn SpanContext::is_valid(self : SpanContext) -> Bool {
-  self.trace_id != "00000000000000000000000000000000" &&
-  self.span_id != "0000000000000000"
+  self.trace_id.is_valid() && self.span_id.is_valid()
 }
 
 // Check if the span is sampled
@@ -88,7 +143,7 @@ pub struct Span {
   status : SpanStatus
   attributes : Map[String, AttributeValue]
   events : Array[SpanEvent]
-  parent_span_id : String?
+  parent_span_id : SpanID?
   resource : Resource
 }
 
@@ -101,7 +156,7 @@ pub fn Span::new(
   kind : SpanKind,
   start_time : Int64,
   resource : Resource,
-  parent_span_id : String?,
+  parent_span_id : SpanID?,
 ) -> Span {
   {
     context,
@@ -193,13 +248,13 @@ fn random_hex(length : Int) -> String {
 // Generate a new TraceID (128-bit, 32 hex characters)
 
 ///|
-pub fn generate_trace_id() -> String {
-  random_hex(32)
+pub fn generate_trace_id() -> TraceID {
+  TraceID::new(random_hex(32))
 }
 
 // Generate a new SpanID (64-bit, 16 hex characters)
 
 ///|
-pub fn generate_span_id() -> String {
-  random_hex(16)
+pub fn generate_span_id() -> SpanID {
+  SpanID::new(random_hex(16))
 }

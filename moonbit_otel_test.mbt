@@ -154,33 +154,33 @@ test "Resource can store multiple attribute types" {
 
 ///|
 test "SpanContext::new creates a valid span context" {
-  let ctx = SpanContext::new(
-    "12345678901234567890123456789012", "1234567890123456", 0x01, false,
-  )
+  let trace_id = TraceID::new("12345678901234567890123456789012")
+  let span_id = SpanID::new("1234567890123456")
+  let ctx = SpanContext::new(trace_id, span_id, 0x01, false)
   assert_true(ctx.is_valid())
   assert_true(ctx.is_sampled())
-  assert_eq(ctx.trace_id, "12345678901234567890123456789012")
-  assert_eq(ctx.span_id, "1234567890123456")
+  assert_eq(ctx.trace_id.to_string(), "12345678901234567890123456789012")
+  assert_eq(ctx.span_id.to_string(), "1234567890123456")
 }
 
 ///|
 test "SpanContext::is_valid returns false for zero IDs" {
-  let ctx = SpanContext::new(
-    "00000000000000000000000000000000", "0000000000000000", 0x00, false,
-  )
+  let trace_id = TraceID::new("00000000000000000000000000000000")
+  let span_id = SpanID::new("0000000000000000")
+  let ctx = SpanContext::new(trace_id, span_id, 0x00, false)
   assert_false(ctx.is_valid())
 }
 
 ///|
 test "generate_trace_id creates 32-character hex string" {
   let trace_id = generate_trace_id()
-  assert_eq(trace_id.length(), 32)
+  assert_eq(trace_id.to_string().length(), 32)
 }
 
 ///|
 test "generate_span_id creates 16-character hex string" {
   let span_id = generate_span_id()
-  assert_eq(span_id.length(), 16)
+  assert_eq(span_id.to_string().length(), 16)
 }
 
 ///|
