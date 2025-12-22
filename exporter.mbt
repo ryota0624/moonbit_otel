@@ -16,6 +16,15 @@ pub struct ConsoleExporter {
   prefix : String // 出力時のプレフィックス
 }
 
+pub impl SpanExporter for ConsoleExporter with export_spans(self : ConsoleExporter, spans : Array[Span]) -> Unit {
+    self.export_spans(spans)
+  }
+
+pub impl SpanExporter for ConsoleExporter with shutdown(self : ConsoleExporter) -> Unit {
+    self.shutdown()
+  }
+
+
 // ConsoleExporterの作成
 
 ///|
