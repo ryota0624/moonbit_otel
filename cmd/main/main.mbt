@@ -41,13 +41,25 @@ fn main {
   // 親Spanを終了
   let parent_span = parent_span.set_status(@lib.SpanStatus::Ok).end(1005000L)
 
-  // Exporterの作成
-  let exporter = @lib.ConsoleExporter::new()
+  // ConsoleExporterの作成
+  let console_exporter = @lib.ConsoleExporter::new()
 
-  // Spanをエクスポート
-  println("=== Exporting Spans ===")
-  exporter.export_spans([child_span, parent_span])
+  // Spanをコンソールにエクスポート
+  println("=== Exporting Spans to Console ===")
+  console_exporter.export_spans([child_span, parent_span])
 
-  // Exporterをシャットダウン
-  exporter.shutdown()
+  // ConsoleExporterをシャットダウン
+  console_exporter.shutdown()
+
+  // OTLPExporterの作成
+  println("\n=== Exporting Spans to OTLP Collector ===")
+  let otlp_config = @lib.OTLPExporterConfig::default()
+    .with_endpoint("http://localhost:4318/v1/traces")
+  let otlp_exporter = @lib.OTLPExporter::new(otlp_config)
+
+  // Spanを OTLP Collectorにエクスポート
+  otlp_exporter.export_spans([child_span, parent_span])
+
+  // OTLPExporterをシャットダウン
+  otlp_exporter.shutdown()
 }

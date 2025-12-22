@@ -1,0 +1,255 @@
+// Tests for OTLP exporter JSON serialization and functionality
+
+// Test JSON escaping of special characters
+test "escape_json_string escapes quotes" {
+  let input = "hello \"world\""
+  let output = escape_json_string(input)
+  // Should escape quotes
+  assert_true(output.contains("\\\""))
+}
+
+test "escape_json_string escapes backslashes" {
+  let input = "path\\to\\file"
+  let output = escape_json_string(input)
+  assert_true(output.contains("\\\\"))
+}
+
+test "escape_json_string escapes newlines" {
+  let input = "line1\nline2"
+  let output = escape_json_string(input)
+  assert_true(output.contains("\\n"))
+}
+
+// Test attribute value serialization
+test "attribute_value_to_json serializes string" {
+  let value = AttributeValue::String("test")
+  let json = attribute_value_to_json(value)
+  assert_true(json.contains("\"stringValue\""))
+  assert_true(json.contains("\"test\""))
+}
+
+test "attribute_value_to_json serializes int" {
+  let value = AttributeValue::Int(42)
+  let json = attribute_value_to_json(value)
+  assert_true(json.contains("\"intValue\""))
+  assert_true(json.contains("\"42\""))
+}
+
+test "attribute_value_to_json serializes bool true" {
+  let value = AttributeValue::Bool(true)
+  let json = attribute_value_to_json(value)
+  assert_true(json.contains("\"boolValue\""))
+  assert_true(json.contains("true"))
+}
+
+test "attribute_value_to_json serializes bool false" {
+  let value = AttributeValue::Bool(false)
+  let json = attribute_value_to_json(value)
+  assert_true(json.contains("\"boolValue\""))
+  assert_true(json.contains("false"))
+}
+
+test "attribute_value_to_json serializes double" {
+  let value = AttributeValue::Double(3.14)
+  let json = attribute_value_to_json(value)
+  assert_true(json.contains("\"doubleValue\""))
+}
+
+test "attribute_value_to_json serializes string array" {
+  let arr = ["hello", "world"]
+  let value = AttributeValue::StringArray(arr)
+  let json = attribute_value_to_json(value)
+  assert_true(json.contains("\"arrayValue\""))
+  assert_true(json.contains("\"stringValue\""))
+}
+
+test "attribute_value_to_json serializes int array" {
+  let arr = [1, 2, 3]
+  let value = AttributeValue::IntArray(arr)
+  let json = attribute_value_to_json(value)
+  assert_true(json.contains("\"arrayValue\""))
+  assert_true(json.contains("\"intValue\""))
+}
+
+// Test span kind conversion
+test "span_kind_to_int converts Internal" {
+  let kind = SpanKind::Internal
+  let code = span_kind_to_int(kind)
+  assert_eq(code, 1)
+}
+
+test "span_kind_to_int converts Server" {
+  let kind = SpanKind::Server
+  let code = span_kind_to_int(kind)
+  assert_eq(code, 2)
+}
+
+test "span_kind_to_int converts Client" {
+  let kind = SpanKind::Client
+  let code = span_kind_to_int(kind)
+  assert_eq(code, 3)
+}
+
+test "span_kind_to_int converts Producer" {
+  let kind = SpanKind::Producer
+  let code = span_kind_to_int(kind)
+  assert_eq(code, 4)
+}
+
+test "span_kind_to_int converts Consumer" {
+  let kind = SpanKind::Consumer
+  let code = span_kind_to_int(kind)
+  assert_eq(code, 5)
+}
+
+// Test span status serialization
+test "span_status_to_json serializes Unset status" {
+  let status = SpanStatus::Unset
+  let json = span_status_to_json(status)
+  assert_true(json.contains("\"code\":0"))
+}
+
+test "span_status_to_json serializes Ok status" {
+  let status = SpanStatus::Ok
+  let json = span_status_to_json(status)
+  assert_true(json.contains("\"code\":1"))
+}
+
+test "span_status_to_json serializes Error status" {
+  let status = SpanStatus::Error
+  let json = span_status_to_json(status)
+  assert_true(json.contains("\"code\":2"))
+}
+
+// Test OTLP exporter configuration
+test "OTLPExporterConfig::default returns default config" {
+  let config = OTLPExporterConfig::default()
+  assert_eq(config.endpoint, "http://localhost:4318/v1/traces")
+  assert_eq(config.timeout_ms, 30000)
+}
+
+test "OTLPExporterConfig::with_endpoint sets custom endpoint" {
+  let config = OTLPExporterConfig::default()
+    .with_endpoint("http://custom:4318/v1/traces")
+  assert_eq(config.endpoint, "http://custom:4318/v1/traces")
+}
+
+test "OTLPExporterConfig::with_timeout sets custom timeout" {
+  let config = OTLPExporterConfig::default()
+    .with_timeout(60000)
+  assert_eq(config.timeout_ms, 60000)
+}
+
+test "OTLPExporterConfig::with_header adds custom header" {
+  let config = OTLPExporterConfig::default()
+    .with_header("Authorization", "Bearer token")
+  match config.headers.get("Authorization") {
+    Some(value) => assert_eq(value, "Bearer token")
+    None => assert_false(true)
+  }
+}
+
+// Test OTLP exporter creation
+test "OTLPExporter::new creates exporter with config" {
+  let config = OTLPExporterConfig::default()
+  let exporter = OTLPExporter::new(config)
+  assert_eq(exporter.config.endpoint, "http://localhost:4318/v1/traces")
+}
+
+test "OTLPExporter::with_default_config creates exporter with defaults" {
+  let exporter = OTLPExporter::with_default_config()
+  assert_eq(exporter.config.endpoint, "http://localhost:4318/v1/traces")
+}
+
+// Helper function to create a test span
+fn create_test_span() -> Span {
+  let trace_id = TraceID::new("5b8efff798038103d269b633813fc60c")
+  let span_id = SpanID::new("eee19b7ec3c1b174")
+  let context = SpanContext::new(trace_id, span_id, 1, false)
+  let resource = Resource::empty()
+  Span::new(context, "test-span", SpanKind::Internal, 1000000000, resource, None)
+}
+
+test "span_to_json produces valid JSON structure" {
+  let span = create_test_span()
+  let json = span_to_json(span)
+
+  // Check for required fields
+  assert_true(json.contains("\"traceId\""))
+  assert_true(json.contains("\"spanId\""))
+  assert_true(json.contains("\"name\""))
+  assert_true(json.contains("\"kind\""))
+  assert_true(json.contains("\"startTimeUnixNano\""))
+  assert_true(json.contains("\"attributes\""))
+  assert_true(json.contains("\"events\""))
+  assert_true(json.contains("\"status\""))
+}
+
+test "span_to_json includes trace ID" {
+  let span = create_test_span()
+  let json = span_to_json(span)
+  assert_true(json.contains("\"traceId\":\"5b8efff798038103d269b633813fc60c\""))
+}
+
+test "span_to_json includes span ID" {
+  let span = create_test_span()
+  let json = span_to_json(span)
+  assert_true(json.contains("\"spanId\":\"eee19b7ec3c1b174\""))
+}
+
+test "span_to_json includes span name" {
+  let span = create_test_span()
+  let json = span_to_json(span)
+  assert_true(json.contains("\"name\":\"test-span\""))
+}
+
+test "span_to_json includes span kind code" {
+  let span = create_test_span()
+  let json = span_to_json(span)
+  // Internal kind = 1
+  assert_true(json.contains("\"kind\":1"))
+}
+
+test "span_to_json includes span with parent span ID" {
+  let trace_id = TraceID::new("5b8efff798038103d269b633813fc60c")
+  let span_id = SpanID::new("eee19b7ec3c1b174")
+  let parent_id = SpanID::new("eee19b7ec3c1b173")
+  let context = SpanContext::new(trace_id, span_id, 1, false)
+  let resource = Resource::empty()
+  let span = Span::new(
+    context,
+    "test-span",
+    SpanKind::Server,
+    1000000000,
+    resource,
+    Some(parent_id),
+  )
+  let json = span_to_json(span)
+  assert_true(json.contains("\"parentSpanId\":\"eee19b7ec3c1b173\""))
+}
+
+test "spans_to_resource_spans_json produces complete OTLP structure" {
+  let span = create_test_span()
+  let json = spans_to_resource_spans_json([span])
+
+  // Check for OTLP structure
+  assert_true(json.contains("\"resourceSpans\""))
+  assert_true(json.contains("\"resource\""))
+  assert_true(json.contains("\"scopeSpans\""))
+  assert_true(json.contains("\"scope\""))
+  assert_true(json.contains("\"spans\""))
+}
+
+test "spans_to_resource_spans_json handles empty array" {
+  let json = spans_to_resource_spans_json([])
+  assert_eq(json, "{\"resourceSpans\":[]}")
+}
+
+test "spans_to_resource_spans_json handles multiple spans" {
+  let span1 = create_test_span()
+  let span2 = create_test_span()
+  let json = spans_to_resource_spans_json([span1, span2])
+
+  // Should contain array with multiple spans
+  assert_true(json.contains("\"spans\""))
+}
