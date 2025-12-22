@@ -3,7 +3,7 @@
 ///|
 pub struct TraceID {
   value : String // 32-character hex string
-} derive(Eq, Show)
+} derive(Eq, Show, ToJson)
 
 // Create a new TraceID
 
@@ -31,7 +31,7 @@ pub fn TraceID::is_valid(self : TraceID) -> Bool {
 ///|
 pub struct SpanID {
   value : String // 16-character hex string
-} derive(Eq, Show)
+} derive(Eq, Show, ToJson)
 
 // Create a new SpanID
 
@@ -63,7 +63,7 @@ pub struct SpanContext {
   span_id : SpanID
   trace_flags : Int
   is_remote : Bool
-}
+} derive(ToJson)
 
 // Create a new SpanContext
 
@@ -100,7 +100,7 @@ pub(all) enum SpanKind {
   Client // Client-side of a synchronous RPC or other remote request
   Producer // Parent of an asynchronous request (e.g., message producer)
   Consumer // Child of an asynchronous request (e.g., message consumer)
-} derive(Eq, Show)
+} derive(Eq, Show, ToJson)
 
 // SpanStatus represents the status of a finished Span
 
@@ -109,7 +109,7 @@ pub(all) enum SpanStatus {
   Unset // The default status
   Ok // The operation completed successfully
   Error // The operation contains an error
-} derive(Eq, Show)
+} derive(Eq, Show, ToJson)
 
 // SpanEvent represents a single event within a Span
 
@@ -118,7 +118,7 @@ pub struct SpanEvent {
   name : String
   timestamp : Int64 // Unix timestamp in nanoseconds
   attributes : Map[String, AttributeValue]
-}
+} derive(ToJson)
 
 // Create a new SpanEvent
 
@@ -145,7 +145,7 @@ pub struct Span {
   events : Array[SpanEvent]
   parent_span_id : SpanID?
   resource : Resource
-}
+} derive(ToJson)
 
 // Create a new Span
 

@@ -10,7 +10,7 @@ pub(all) enum AttributeValue {
   IntArray(Array[Int])
   BoolArray(Array[Bool])
   DoubleArray(Array[Double])
-} derive(Eq, Show)
+} derive(Eq, Show, ToJson)
 
 // Resource represents an immutable representation of the entity producing telemetry.
 // For example, a process producing telemetry that is running in a container on Kubernetes
@@ -19,7 +19,7 @@ pub(all) enum AttributeValue {
 ///|
 struct Resource {
   attributes : Map[String, AttributeValue]
-}
+} derive(ToJson)
 
 // Create an empty Resource
 

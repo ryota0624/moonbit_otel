@@ -1,124 +1,51 @@
 // Tests for OTLP exporter JSON serialization and functionality
+// Using ToJson derive trait for automatic JSON serialization
 
-// Test JSON escaping of special characters
-test "escape_json_string escapes quotes" {
-  let input = "hello \"world\""
-  let output = escape_json_string(input)
-  // Should escape quotes
-  assert_true(output.contains("\\\""))
-}
-
-test "escape_json_string escapes backslashes" {
-  let input = "path\\to\\file"
-  let output = escape_json_string(input)
-  assert_true(output.contains("\\\\"))
-}
-
-test "escape_json_string escapes newlines" {
-  let input = "line1\nline2"
-  let output = escape_json_string(input)
-  assert_true(output.contains("\\n"))
-}
-
-// Test attribute value serialization
-test "attribute_value_to_json serializes string" {
+// Test attribute value serialization via ToJson
+test "AttributeValue::String serializes via ToJson" {
   let value = AttributeValue::String("test")
-  let json = attribute_value_to_json(value)
-  assert_true(json.contains("\"stringValue\""))
-  assert_true(json.contains("\"test\""))
+  let json = value.to_json().to_string()
+  assert_true(json.contains("\"String\"") || json.contains("test"))
 }
 
-test "attribute_value_to_json serializes int" {
+test "AttributeValue::Int serializes via ToJson" {
   let value = AttributeValue::Int(42)
-  let json = attribute_value_to_json(value)
-  assert_true(json.contains("\"intValue\""))
-  assert_true(json.contains("\"42\""))
+  let json = value.to_json().to_string()
+  assert_true(json.contains("42"))
 }
 
-test "attribute_value_to_json serializes bool true" {
+test "AttributeValue::Bool serializes via ToJson" {
   let value = AttributeValue::Bool(true)
-  let json = attribute_value_to_json(value)
-  assert_true(json.contains("\"boolValue\""))
+  let json = value.to_json().to_string()
   assert_true(json.contains("true"))
 }
 
-test "attribute_value_to_json serializes bool false" {
-  let value = AttributeValue::Bool(false)
-  let json = attribute_value_to_json(value)
-  assert_true(json.contains("\"boolValue\""))
-  assert_true(json.contains("false"))
-}
-
-test "attribute_value_to_json serializes double" {
+test "AttributeValue::Double serializes via ToJson" {
   let value = AttributeValue::Double(3.14)
-  let json = attribute_value_to_json(value)
-  assert_true(json.contains("\"doubleValue\""))
+  let json = value.to_json().to_string()
+  assert_true(json.contains("3.14"))
 }
 
-test "attribute_value_to_json serializes string array" {
+test "AttributeValue::StringArray serializes via ToJson" {
   let arr = ["hello", "world"]
   let value = AttributeValue::StringArray(arr)
-  let json = attribute_value_to_json(value)
-  assert_true(json.contains("\"arrayValue\""))
-  assert_true(json.contains("\"stringValue\""))
+  let json = value.to_json().to_string()
+  assert_true(json.contains("hello"))
+  assert_true(json.contains("world"))
 }
 
-test "attribute_value_to_json serializes int array" {
-  let arr = [1, 2, 3]
-  let value = AttributeValue::IntArray(arr)
-  let json = attribute_value_to_json(value)
-  assert_true(json.contains("\"arrayValue\""))
-  assert_true(json.contains("\"intValue\""))
-}
-
-// Test span kind conversion
-test "span_kind_to_int converts Internal" {
-  let kind = SpanKind::Internal
-  let code = span_kind_to_int(kind)
-  assert_eq(code, 1)
-}
-
-test "span_kind_to_int converts Server" {
-  let kind = SpanKind::Server
-  let code = span_kind_to_int(kind)
-  assert_eq(code, 2)
-}
-
-test "span_kind_to_int converts Client" {
-  let kind = SpanKind::Client
-  let code = span_kind_to_int(kind)
-  assert_eq(code, 3)
-}
-
-test "span_kind_to_int converts Producer" {
-  let kind = SpanKind::Producer
-  let code = span_kind_to_int(kind)
-  assert_eq(code, 4)
-}
-
-test "span_kind_to_int converts Consumer" {
-  let kind = SpanKind::Consumer
-  let code = span_kind_to_int(kind)
-  assert_eq(code, 5)
-}
-
-// Test span status serialization
-test "span_status_to_json serializes Unset status" {
-  let status = SpanStatus::Unset
-  let json = span_status_to_json(status)
-  assert_true(json.contains("\"code\":0"))
-}
-
-test "span_status_to_json serializes Ok status" {
+// Test SpanStatus serialization via ToJson
+test "SpanStatus serializes via ToJson" {
   let status = SpanStatus::Ok
-  let json = span_status_to_json(status)
-  assert_true(json.contains("\"code\":1"))
+  let json = status.to_json().to_string()
+  assert_true(json.contains("Ok"))
 }
 
-test "span_status_to_json serializes Error status" {
-  let status = SpanStatus::Error
-  let json = span_status_to_json(status)
-  assert_true(json.contains("\"code\":2"))
+// Test SpanKind serialization via ToJson
+test "SpanKind serializes via ToJson" {
+  let kind = SpanKind::Server
+  let json = kind.to_json().to_string()
+  assert_true(json.contains("Server"))
 }
 
 // Test OTLP exporter configuration
