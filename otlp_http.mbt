@@ -51,13 +51,13 @@ pub fn http_post_json(
 fn http_post_internal(
   request : HttpRequest,
 ) -> Result[HttpResponse, HttpError] {
-  // Serialize request headers to JSON
-  let headers_json = request.headers.to_json().to_string()
+  // Serialize entire request to JSON
+  let request_json = request.to_json().to_string()
 
   // Call the native HTTP function via FFI
   // The actual implementation will be provided by the JavaScript/Node.js runtime
   // See http_ffi.js for the JavaScript implementation
-  let response_json_str = http_post_impl(request.url, request.body, headers_json)
+  let response_json_str = http_post_impl(request_json)
 
   // Parse response: String -> Json -> HttpResponse
   try {
@@ -69,21 +69,65 @@ fn http_post_internal(
   }
 }
 
-// FFI stub for HTTP POST - will be implemented via JavaScript/Node.js
-// This function needs to be bound at runtime to call the fetch API
-fn http_post_impl(
-  url : String,
-  body : String,
-  headers : String,
-) -> String {
-  // Placeholder - will be replaced with actual FFI implementation
-  // In a real scenario, this would call JavaScript's fetch API via FFI
-  ignore(url)
-  ignore(body)
-  ignore(headers)
-  "{\"error\": \"HTTP implementation requires FFI binding\"}"
-}
-
+// FFI function for HTTP POST using JavaScript's fetch API
+// Input: JSON string containing HttpRequest { url, http_method, headers, body }
+// Output: JSON string containing HttpResponse { status_code, body }
+//
+// This function is imported from the JavaScript global scope (otel module)
+// You must define this in your JavaScript runtime before using MoonBit
+extern "js" fn http_post_impl(request_json : String) -> String = 
+#| function httpPost(requestJson) {
+#|   try {
+#|     // Parse the request from MoonBit
+#|     const request = JSON.parse(requestJson);
+#|     const { url, http_method, headers, body } = request;#| 
+#|     // Set timeout for the fetch request (30 seconds by default)
+#|     const controller = new AbortController();
+#|     const timeoutId = setTimeout(() => controller.abort(), 30000);#| 
+#|     // Make the fetch request and return promise that resolves to JSON string
+#|     return fetch(url, {
+#|       method: http_method || "POST",
+#|       headers: headers || { "Content-Type": "application/json" },
+#|       body: body,
+#|       signal: controller.signal,
+#|     })
+#|       .then(response => {
+#|         clearTimeout(timeoutId);#| 
+#|         // Read the response body
+#|         return response.text().then(responseBody => {
+#|           const result = {
+#|             status_code: response.status,
+#|             body: responseBody,
+#|           };
+#|           return JSON.stringify(result);
+#|         });
+#|       })
+#|       .catch(error => {
+#|         clearTimeout(timeoutId);#| 
+#|         // Handle different error types
+#|         let errorBody = "Unknown error";
+#|         if (error.name === "AbortError") {
+#|           errorBody = "Request timeout";
+#|         } else if (error instanceof TypeError) {
+#|           errorBody = `Network error: ${error.message}`;
+#|         } else {
+#|           errorBody = `Error: ${error.message}`;
+#|         }#|
+#|         const errorResponse = {
+#|           status_code: 0,
+#|           body: errorBody,
+#|         };#| 
+#|         return JSON.stringify(errorResponse);
+#|       });
+#|   } catch (error) {
+#|     // Handle JSON parsing errors
+#|     const errorResponse = {
+#|       status_code: 0,
+#|       body: `Invalid request format: ${error.message}`,
+#|     };
+#|     return JSON.stringify(errorResponse);
+#|   }
+#| }
 
 // Helper to build request headers
 pub fn make_headers_map() -> Map[String, String] {
