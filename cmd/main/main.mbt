@@ -55,7 +55,7 @@ fn main {
   println("\n=== Exporting Spans to OTLP Collector ===")
   let otlp_config = @lib.OTLPExporterConfig::default()
     .with_endpoint("http://localhost:4318/v1/traces")
-  let otlp_exporter = @lib.OTLPExporter::new(otlp_config)
+  let otlp_exporter: &@lib.SpanExporter = @lib.OTLPExporter::new(otlp_config)
 
   // Spanを OTLP Collectorにエクスポート
   otlp_exporter.export_spans([child_span, parent_span])
