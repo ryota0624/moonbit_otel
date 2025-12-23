@@ -111,7 +111,7 @@ pub(all) enum SpanKind {
   Consumer // Child of an asynchronous request (e.g., message consumer)
 } derive(Eq, Show)
 
-impl ToJson for SpanKind with to_json(self : SpanKind) -> Json {
+pub impl ToJson for SpanKind with to_json(self : SpanKind) -> Json {
   let kind_code = match self {
     SpanKind::Unspecified => 0
     SpanKind::Internal => 1
@@ -132,13 +132,13 @@ pub(all) enum SpanStatus {
   Error // The operation contains an error
 } derive(Eq, Show)
 
-impl ToJson for SpanStatus with to_json(self : SpanStatus) -> Json {
+///|
+pub impl ToJson for SpanStatus with to_json(self : SpanStatus) -> Json {
   let status_code = match self {
     SpanStatus::Unset => 0
     SpanStatus::Ok => 1
     SpanStatus::Error => 2
   }
-
   let message = match self {
     SpanStatus::Unset => "Unset"
     SpanStatus::Ok => "Ok"
@@ -146,7 +146,7 @@ impl ToJson for SpanStatus with to_json(self : SpanStatus) -> Json {
   }
   Json::object({
     "code": Json::number(status_code.to_double()),
-    "message": Json::string(message)
+    "message": Json::string(message),
   })
 }
 
