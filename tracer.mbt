@@ -1,12 +1,47 @@
+// TracerConfig holds configuration for Tracer ID generation
+///|
+pub struct TracerConfig {
+  trace_id_generator : () -> TraceID
+  span_id_generator : () -> SpanID
+}
+
+// Create default TracerConfig using built-in generators
+
+///|
+pub fn TracerConfig::default() -> TracerConfig {
+  { trace_id_generator: generate_trace_id, span_id_generator: generate_span_id }
+}
+
+// Set custom trace ID generator
+
+///|
+pub fn TracerConfig::with_trace_id_generator(
+  self : TracerConfig,
+  generator : () -> TraceID,
+) -> TracerConfig {
+  { ..self, trace_id_generator: generator }
+}
+
+// Set custom span ID generator
+
+///|
+pub fn TracerConfig::with_span_id_generator(
+  self : TracerConfig,
+  generator : () -> SpanID,
+) -> TracerConfig {
+  { ..self, span_id_generator: generator }
+}
+
 // Tracer is responsible for creating Spans
 ///|
 pub struct Tracer {
   name : String // Tracer name (usually the instrumentation library name)
   version : String // Tracer version
   resource : Resource // Resource associated with this tracer
+  config : TracerConfig // Configuration for ID generation
 }
 
-// Create a new Tracer
+// Create a new Tracer with default configuration
 
 ///|
 pub fn Tracer::new(
@@ -14,7 +49,20 @@ pub fn Tracer::new(
   version : String,
   resource : Resource,
 ) -> Tracer {
-  { name, version, resource }
+  let config = TracerConfig::default()
+  { name, version, resource, config }
+}
+
+// Create a new Tracer with custom configuration
+
+///|
+pub fn Tracer::with_config(
+  name : String,
+  version : String,
+  resource : Resource,
+  config : TracerConfig,
+) -> Tracer {
+  { name, version, resource, config }
 }
 
 // SpanBuilder helps construct a Span with various options
@@ -88,12 +136,12 @@ pub fn SpanBuilder::with_start_time(
 
 ///|
 pub fn SpanBuilder::start(self : SpanBuilder, tracer : Tracer) -> Span {
-  // Generate new trace and span IDs
+  // Generate new trace and span IDs using tracer's config generators
   let trace_id = match self.parent_context {
     Some(parent) => parent.trace_id
-    None => generate_trace_id()
+    None => (tracer.config.trace_id_generator)()
   }
-  let span_id = generate_span_id()
+  let span_id = (tracer.config.span_id_generator)()
   let parent_span_id = match self.parent_context {
     Some(parent) => Some(parent.span_id)
     None => None
