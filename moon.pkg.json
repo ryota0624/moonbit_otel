@@ -1,3 +1,6 @@
 {
-  "is-main": false
+  "is-main": false,
+  "targets": {
+   "_js.mbt": ["js"]  
+  }
 }
