@@ -1,0 +1,1 @@
+{ "import": [{ "path" : "ryota0624/moonbit-otel-wasi/ffi", "alias" : "ffi" }, { "path" : "ryota0624/moonbit-otel-wasi/interface/wasi/io/error", "alias" : "error" }, { "path" : "ryota0624/moonbit-otel-wasi/interface/wasi/io/poll", "alias" : "poll" }] }

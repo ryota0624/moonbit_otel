@@ -1,0 +1,16 @@
+{
+  "is-main": false,
+  "targets": {
+    "otlp_http_native.mbt": [
+      "native"
+    ]
+  },
+  "import": [
+    "moonbitlang/async/http",
+    {
+      "path": "ryota0624/moonbit_otel",
+      "alias": "lib"
+    },
+    "moonbitlang/async"
+  ]
+}

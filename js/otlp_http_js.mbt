@@ -1,3 +1,18 @@
+
+///|
+/// `suspend` will suspend the execution of the current coroutine.
+/// The suspension will be handled by a callback passed to `suspend`
+async fn[T, E : Error] suspend(
+  // `f` is a callback for handling suspension
+  f : (
+    // the first parameter of `f` is used to resume the execution of the coroutine normally
+    (T) -> Unit,
+    // the second parameter of `f` is used to cancel the execution of the current coroutine
+    // by throwing an error at suspension point
+    (E) -> Unit,
+  ) -> Unit,
+) -> T raise E = "%async.suspend"
+
 // FFI function for HTTP POST using JavaScript's fetch API
 // Input: JSON string containing HttpRequest { url, http_method, headers, body }
 // Output: JSON string containing HttpResponse { status_code, body }
@@ -9,14 +24,14 @@
 priv struct HttpClientOnFetchApi {}
 
 ///|
-pub fn http_client_factory() -> &HttpClientFactory {
+pub fn http_client_factory() -> &@lib.HttpClientFactory {
   HttpClientOnFetchApi::{  }
 }
 
 ///|
 async fn http_post_internal(
-  request : HttpRequest,
-) -> Result[HttpResponse, HttpError] {
+  request : @lib.HttpRequest,
+) -> Result[@lib.HttpResponse, @lib.HttpError] {
   // Serialize entire request to JSON
   let request_json = request.to_json().stringify()
   // Call the native HTTP function via FFI
@@ -31,36 +46,36 @@ async fn http_post_internal(
   // Parse response: String -> Json -> HttpResponse
   try {
     let json = @json.parse(response_json_str)
-    let response : HttpResponse = @json.from_json(json)
+    let response : @lib.HttpResponse = @json.from_json(json)
     if response.status_code == 0 {
       /// TODO: Differentiate timeout vs network errors
-      return Err(HttpError::NetworkError(response.body))
+      return Err(@lib.HttpError::NetworkError(response.body))
     }
     Ok(response)
   } catch {
-    _err => Err(HttpError::InvalidResponse("Failed to parse HTTP response"))
+    _err => Err(@lib.HttpError::InvalidResponse("Failed to parse HTTP response"))
   }
 }
 
 ///|
-impl HttpClient for HttpClientOnFetchApi with http_post_json(
+impl @lib.HttpClient for HttpClientOnFetchApi with http_post_json(
   _ : HttpClientOnFetchApi,
   url : String,
   body : String,
   headers : Map[String, String],
-) -> Result[HttpResponse, HttpError] {
+) -> Result[@lib.HttpResponse, @lib.HttpError] {
   http_post_internal({
     url,
     http_method: "POST",
-    headers: default_headers().merge(headers),
+    headers: headers,
     body,
   })
 }
 
 ///|
-impl HttpClientFactory for HttpClientOnFetchApi with create_client(
+impl @lib.HttpClientFactory for HttpClientOnFetchApi with create_client(
   _ : HttpClientOnFetchApi,
-) -> &HttpClient {
+) -> &@lib.HttpClient {
   HttpClientOnFetchApi::{  }
 }
 

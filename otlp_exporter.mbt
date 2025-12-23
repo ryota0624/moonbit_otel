@@ -2,7 +2,7 @@
 // Sends spans to an OpenTelemetry Collector via HTTP+JSON
 
 ///|
-pub trait HttpClientFactory {
+pub(open) trait HttpClientFactory {
   async create_client(Self) -> &HttpClient
 }
 
@@ -21,7 +21,7 @@ pub struct OTLPExporter {
 }
 
 ///|
-pub trait HttpClient {
+pub(open) trait HttpClient {
   async http_post_json(
     Self,
     url : String,
@@ -33,12 +33,14 @@ pub trait HttpClient {
 // Create default OTLP exporter configuration
 
 ///|
-pub fn OTLPExporterConfig::default() -> OTLPExporterConfig {
+pub fn OTLPExporterConfig::default(
+  http_client_factory : &HttpClientFactory,
+) -> OTLPExporterConfig {
   {
     endpoint: "http://localhost:4318/v1/traces",
     headers: Map::new(),
     timeout_ms: 30000,
-    http_client_factory: http_client_factory(),
+    http_client_factory,
   }
 }
 
@@ -75,6 +77,14 @@ pub fn OTLPExporterConfig::with_timeout(
   { ..self, timeout_ms, }
 }
 
+///|
+pub fn OTLPExporterConfig::with_http_client_factory(
+  self : OTLPExporterConfig,
+  factory : &HttpClientFactory,
+) -> OTLPExporterConfig {
+  { ..self, http_client_factory: factory }
+}
+
 // Create a new OTLP exporter with the given configuration
 
 ///|
@@ -85,8 +95,10 @@ pub fn OTLPExporter::new(config : OTLPExporterConfig) -> OTLPExporter {
 // Create an OTLP exporter with default configuration
 
 ///|
-pub fn OTLPExporter::with_default_config() -> OTLPExporter {
-  OTLPExporter::new(OTLPExporterConfig::default())
+pub fn OTLPExporter::with_default_config(
+  http_client_factory : &HttpClientFactory,
+) -> OTLPExporter {
+  OTLPExporter::new(OTLPExporterConfig::default(http_client_factory))
 }
 
 // Explicit implementation of SpanExporter trait for OTLPExporter

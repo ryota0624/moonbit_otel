@@ -1,7 +1,7 @@
 // HTTP client abstraction for making OTLP export requests
 
 ///|
-pub struct HttpRequest {
+pub(all) struct HttpRequest {
   url : String
   http_method : String
   headers : Map[String, String]
@@ -9,14 +9,14 @@ pub struct HttpRequest {
 } derive(ToJson, FromJson)
 
 ///|
-pub struct HttpResponse {
+pub(all) struct HttpResponse {
   status_code : Int
   body : String
   error_code : Int?
 } derive(ToJson, FromJson)
 
 ///|
-pub enum HttpError {
+pub(all) enum HttpError {
   NetworkError(String)
   // TimeoutError
   InvalidResponse(String)

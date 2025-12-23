@@ -1,5 +1,10 @@
 {
   "is-main": false,
+  "targets": {
+    "otlp_http_js.mbt": [
+      "js"
+    ]
+  },
   "import": [
     {
       "path": "ryota0624/moonbit_otel",
