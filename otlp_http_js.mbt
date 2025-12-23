@@ -10,6 +10,7 @@ extern "js" fn http_post_impl(request_json : String, timeout_ms: Int, resolve: (
 #|     // Parse the request from MoonBit
 #|     const request = JSON.parse(requestJson);
 #|     const { url, http_method, headers, body } = request;
+#|     console.log("requset body", body);
 #|     // Set timeout for the fetch request
 #|     const controller = new AbortController();
 #|     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);

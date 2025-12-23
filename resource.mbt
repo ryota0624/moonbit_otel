@@ -25,21 +25,177 @@ impl ToJson for AttributeValue with to_json(self : AttributeValue) -> Json {
   }
 }
 
+// Attributes: AttributeValue の Map をカプセル化した構造体
+// 内部で Map を保有し、外部からの直接操作を制限する
+
+///|
+pub struct Attributes {
+  map : Map[String, AttributeValue]
+} derive(ToJson)
+
+///|
+pub fn Attributes::new() -> Attributes {
+  { map: Map::new() }
+}
+
+///|
+pub fn Attributes::with_string(
+  self : Attributes,
+  key : String,
+  value : String,
+) -> Attributes {
+  let new_map = self.map.copy()
+  new_map.set(key, String(value))
+  { map: new_map }
+}
+
+///|
+pub fn Attributes::with_int(
+  self : Attributes,
+  key : String,
+  value : Int,
+) -> Attributes {
+  let new_map = self.map.copy()
+  new_map.set(key, Int(value))
+  { map: new_map }
+}
+
+///|
+pub fn Attributes::with_bool(
+  self : Attributes,
+  key : String,
+  value : Bool,
+) -> Attributes {
+  let new_map = self.map.copy()
+  new_map.set(key, Bool(value))
+  { map: new_map }
+}
+
+///|
+pub fn Attributes::with_double(
+  self : Attributes,
+  key : String,
+  value : Double,
+) -> Attributes {
+  let new_map = self.map.copy()
+  new_map.set(key, Double(value))
+  { map: new_map }
+}
+
+///|
+pub fn Attributes::with_string_array(
+  self : Attributes,
+  key : String,
+  value : Array[String],
+) -> Attributes {
+  let new_map = self.map.copy()
+  new_map.set(key, StringArray(value))
+  { map: new_map }
+}
+
+///|
+pub fn Attributes::with_int_array(
+  self : Attributes,
+  key : String,
+  value : Array[Int],
+) -> Attributes {
+  let new_map = self.map.copy()
+  new_map.set(key, IntArray(value))
+  { map: new_map }
+}
+
+///|
+pub fn Attributes::with_bool_array(
+  self : Attributes,
+  key : String,
+  value : Array[Bool],
+) -> Attributes {
+  let new_map = self.map.copy()
+  new_map.set(key, BoolArray(value))
+  { map: new_map }
+}
+
+///|
+pub fn Attributes::with_double_array(
+  self : Attributes,
+  key : String,
+  value : Array[Double],
+) -> Attributes {
+  let new_map = self.map.copy()
+  new_map.set(key, DoubleArray(value))
+  { map: new_map }
+}
+
+///|
+pub fn Attributes::get(self : Attributes, key : String) -> AttributeValue? {
+  self.map.get(key)
+}
+
+///|
+pub fn Attributes::get_string(self : Attributes, key : String) -> String? {
+  match self.get(key) {
+    Some(String(s)) => Some(s)
+    _ => None
+  }
+}
+
+///|
+pub fn Attributes::get_int(self : Attributes, key : String) -> Int? {
+  match self.get(key) {
+    Some(Int(i)) => Some(i)
+    _ => None
+  }
+}
+
+///|
+pub fn Attributes::get_bool(self : Attributes, key : String) -> Bool? {
+  match self.get(key) {
+    Some(Bool(b)) => Some(b)
+    _ => None
+  }
+}
+
+///|
+pub fn Attributes::get_double(self : Attributes, key : String) -> Double? {
+  match self.get(key) {
+    Some(Double(d)) => Some(d)
+    _ => None
+  }
+}
+
+///|
+pub fn Attributes::contains(self : Attributes, key : String) -> Bool {
+  self.map.get(key) is Some(_)
+}
+
+///|
+pub fn Attributes::size(self : Attributes) -> Int {
+  self.map.length()
+}
+
+///|
+pub fn Attributes::each(
+  self : Attributes,
+  f : (String, AttributeValue) -> Unit,
+) -> Unit {
+  self.map.each(f)
+}
+
 
 // Resource represents an immutable representation of the entity producing telemetry.
 // For example, a process producing telemetry that is running in a container on Kubernetes
 // has a Pod name, a namespace, and possibly a deployment name.
 
 ///|
-struct Resource {
-  attributes : Map[String, AttributeValue]
+pub struct Resource {
+  attributes : Attributes
 } derive(ToJson)
 
 // Create an empty Resource
 
 ///|
 pub fn Resource::empty() -> Resource {
-  { attributes: Map::new() }
+  { attributes: Attributes::new() }
 }
 
 // Create a new Resource with initial attributes
@@ -57,8 +213,7 @@ pub fn Resource::with_string(
   key : String,
   value : String,
 ) -> Resource {
-  let new_attributes = self.attributes.copy()
-  new_attributes.set(key, String(value))
+  let new_attributes = self.attributes.with_string(key, value)
   { attributes: new_attributes }
 }
 
@@ -70,8 +225,7 @@ pub fn Resource::with_int(
   key : String,
   value : Int,
 ) -> Resource {
-  let new_attributes = self.attributes.copy()
-  new_attributes.set(key, Int(value))
+  let new_attributes = self.attributes.with_int(key, value)
   { attributes: new_attributes }
 }
 
@@ -83,8 +237,7 @@ pub fn Resource::with_bool(
   key : String,
   value : Bool,
 ) -> Resource {
-  let new_attributes = self.attributes.copy()
-  new_attributes.set(key, Bool(value))
+  let new_attributes = self.attributes.with_bool(key, value)
   { attributes: new_attributes }
 }
 
@@ -96,8 +249,7 @@ pub fn Resource::with_double(
   key : String,
   value : Double,
 ) -> Resource {
-  let new_attributes = self.attributes.copy()
-  new_attributes.set(key, Double(value))
+  let new_attributes = self.attributes.with_double(key, value)
   { attributes: new_attributes }
 }
 
@@ -109,8 +261,7 @@ pub fn Resource::with_string_array(
   key : String,
   value : Array[String],
 ) -> Resource {
-  let new_attributes = self.attributes.copy()
-  new_attributes.set(key, StringArray(value))
+  let new_attributes = self.attributes.with_string_array(key, value)
   { attributes: new_attributes }
 }
 
@@ -122,8 +273,7 @@ pub fn Resource::with_int_array(
   key : String,
   value : Array[Int],
 ) -> Resource {
-  let new_attributes = self.attributes.copy()
-  new_attributes.set(key, IntArray(value))
+  let new_attributes = self.attributes.with_int_array(key, value)
   { attributes: new_attributes }
 }
 
@@ -135,8 +285,7 @@ pub fn Resource::with_bool_array(
   key : String,
   value : Array[Bool],
 ) -> Resource {
-  let new_attributes = self.attributes.copy()
-  new_attributes.set(key, BoolArray(value))
+  let new_attributes = self.attributes.with_bool_array(key, value)
   { attributes: new_attributes }
 }
 
@@ -148,8 +297,7 @@ pub fn Resource::with_double_array(
   key : String,
   value : Array[Double],
 ) -> Resource {
-  let new_attributes = self.attributes.copy()
-  new_attributes.set(key, DoubleArray(value))
+  let new_attributes = self.attributes.with_double_array(key, value)
   { attributes: new_attributes }
 }
 
@@ -204,8 +352,19 @@ pub fn Resource::get_double(self : Resource, key : String) -> Double? {
 
 ///|
 pub fn Resource::merge(self : Resource, other : Resource) -> Resource {
-  let result = self.attributes.copy()
-  other.attributes.each(fn(key, value) { result.set(key, value) })
+  let mut result = self.attributes
+  other.attributes.each(fn(key, value) {
+    match value {
+      String(s) => result = result.with_string(key, s)
+      Int(i) => result = result.with_int(key, i)
+      Bool(b) => result = result.with_bool(key, b)
+      Double(d) => result = result.with_double(key, d)
+      StringArray(arr) => result = result.with_string_array(key, arr)
+      IntArray(arr) => result = result.with_int_array(key, arr)
+      BoolArray(arr) => result = result.with_bool_array(key, arr)
+      DoubleArray(arr) => result = result.with_double_array(key, arr)
+    }
+  })
   { attributes: result }
 }
 
@@ -213,14 +372,14 @@ pub fn Resource::merge(self : Resource, other : Resource) -> Resource {
 
 ///|
 pub fn Resource::contains(self : Resource, key : String) -> Bool {
-  self.attributes.get(key) is Some(_)
+  self.attributes.contains(key)
 }
 
 // Get the number of attributes in the Resource
 
 ///|
 pub fn Resource::size(self : Resource) -> Int {
-  self.attributes.length()
+  self.attributes.size()
 }
 
 // Common semantic conventions for Resource attributes
