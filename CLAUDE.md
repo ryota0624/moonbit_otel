@@ -1,3 +1,7 @@
+# 動作確認について
+
+moon run コマンドの実行時には--target jsをつけてjavascriptバックエンドで行う
+
 # ffi実装時のルール
 
 ## javascript ffi

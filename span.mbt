@@ -103,12 +103,25 @@ pub fn SpanContext::is_sampled(self : SpanContext) -> Bool {
 
 ///|
 pub(all) enum SpanKind {
+  Unspecified // Default value. Indicates that the SpanKind is unspecified.
   Internal // Internal operation within an application
   Server // Server-side handling of a synchronous RPC or other remote request
   Client // Client-side of a synchronous RPC or other remote request
   Producer // Parent of an asynchronous request (e.g., message producer)
   Consumer // Child of an asynchronous request (e.g., message consumer)
-} derive(Eq, Show, ToJson)
+} derive(Eq, Show)
+
+impl ToJson for SpanKind with to_json(self : SpanKind) -> Json {
+  let kind_code = match self {
+    SpanKind::Unspecified => 0
+    SpanKind::Internal => 1
+    SpanKind::Server => 2
+    SpanKind::Client => 3
+    SpanKind::Producer => 4
+    SpanKind::Consumer => 5
+  }
+  Json::number(kind_code.to_double())
+}
 
 // SpanStatus represents the status of a finished Span
 
@@ -117,7 +130,25 @@ pub(all) enum SpanStatus {
   Unset // The default status
   Ok // The operation completed successfully
   Error // The operation contains an error
-} derive(Eq, Show, ToJson)
+} derive(Eq, Show)
+
+impl ToJson for SpanStatus with to_json(self : SpanStatus) -> Json {
+  let status_code = match self {
+    SpanStatus::Unset => 0
+    SpanStatus::Ok => 1
+    SpanStatus::Error => 2
+  }
+
+  let message = match self {
+    SpanStatus::Unset => "Unset"
+    SpanStatus::Ok => "Ok"
+    SpanStatus::Error => "Error"
+  }
+  Json::object({
+    "code": Json::number(status_code.to_double()),
+    "message": Json::string(message)
+  })
+}
 
 // SpanEvent represents a single event within a Span
 
@@ -143,15 +174,20 @@ pub fn SpanEvent::new(
 
 ///|
 pub struct Span {
-  context : SpanContext
+  traceId : TraceID
+  spanId : SpanID
+  traceState : String
+  parentSpanId : SpanID?
+  flags : Int
   name : String
   kind : SpanKind
-  start_time : Int64
-  end_time : Int64?
-  status : SpanStatus
+  startTimeUnixNano : Int64
+  endTimeUnixNano : Int64?
   attributes : Attributes
+  droppedAttributesCount : Int
   events : Array[SpanEvent]
-  parent_span_id : SpanID?
+  droppedEventsCount : Int
+  status : SpanStatus
   resource : Resource
 } derive(ToJson)
 
@@ -167,15 +203,20 @@ pub fn Span::new(
   parent_span_id : SpanID?,
 ) -> Span {
   {
-    context,
+    traceId: context.trace_id,
+    spanId: context.span_id,
+    traceState: "",
+    parentSpanId: parent_span_id,
+    flags: context.trace_flags,
     name,
     kind,
-    start_time,
-    end_time: None,
+    startTimeUnixNano: start_time,
+    endTimeUnixNano: None,
     status: SpanStatus::Unset,
     attributes: Attributes::new(),
+    droppedAttributesCount: 0,
     events: [],
-    parent_span_id,
+    droppedEventsCount: 0,
     resource,
   }
 }
@@ -188,7 +229,8 @@ pub fn Span::set_attribute(
   key : String,
   value : AttributeValue,
 ) -> Span {
-  { ..self, attributes: self.attributes.set(key, value) }
+  let new_attributes = self.attributes.set(key, value)
+  { ..self, attributes: new_attributes }
 }
 
 // Add an event to the Span
@@ -214,22 +256,22 @@ pub fn Span::set_status(self : Span, status : SpanStatus) -> Span {
 
 ///|
 pub fn Span::end(self : Span, end_time : Int64) -> Span {
-  { ..self, end_time: Some(end_time) }
+  { ..self, endTimeUnixNano: Some(end_time) }
 }
 
 // Check if the Span has ended
 
 ///|
 pub fn Span::is_ended(self : Span) -> Bool {
-  self.end_time is Some(_)
+  self.endTimeUnixNano is Some(_)
 }
 
 // Get the duration of the Span in nanoseconds (returns None if not ended)
 
 ///|
 pub fn Span::duration(self : Span) -> Int64? {
-  match self.end_time {
-    Some(end) => Some(end - self.start_time)
+  match self.endTimeUnixNano {
+    Some(end) => Some(end - self.startTimeUnixNano)
     None => None
   }
 }

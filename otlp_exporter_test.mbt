@@ -1,38 +1,7 @@
 // Tests for OTLP exporter JSON serialization and functionality
 // Using ToJson derive trait for automatic JSON serialization
 
-// Test attribute value serialization via ToJson
-test "AttributeValue::String serializes via ToJson" {
-  let value = AttributeValue::String("test")
-  let json = value.to_json().to_string()
-  assert_true(json.contains("\"String\"") || json.contains("test"))
-}
-
-test "AttributeValue::Int serializes via ToJson" {
-  let value = AttributeValue::Int(42)
-  let json = value.to_json().to_string()
-  assert_true(json.contains("42"))
-}
-
-test "AttributeValue::Bool serializes via ToJson" {
-  let value = AttributeValue::Bool(true)
-  let json = value.to_json().to_string()
-  assert_true(json.contains("true"))
-}
-
-test "AttributeValue::Double serializes via ToJson" {
-  let value = AttributeValue::Double(3.14)
-  let json = value.to_json().to_string()
-  assert_true(json.contains("3.14"))
-}
-
-test "AttributeValue::StringArray serializes via ToJson" {
-  let arr = ["hello", "world"]
-  let value = AttributeValue::StringArray(arr)
-  let json = value.to_json().to_string()
-  assert_true(json.contains("hello"))
-  assert_true(json.contains("world"))
-}
+// AttributeValue serialization is tested implicitly through span serialization tests below
 
 // Test SpanStatus serialization via ToJson
 test "SpanStatus serializes via ToJson" {

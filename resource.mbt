@@ -26,7 +26,9 @@ pub struct Attributes {
 }
 
 impl ToJson for Attributes with to_json(self : Attributes) -> Json {
-  self.map.map(fn(key, value) {
+  self.map.iterator().map(fn(kv) {
+    let key = kv.0
+    let value = kv.1
     Json::object({ "key": Json::string(key), "value": value.to_json()})
   }).to_json()
 }

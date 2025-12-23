@@ -75,18 +75,18 @@ pub fn ConsoleExporter::shutdown(self : ConsoleExporter) -> Unit {
 fn format_span(span : Span) -> String {
   let mut output = "\n"
   output = output + "Span: " + span.name + "\n"
-  output = output + "  TraceID: " + span.context.trace_id.to_string() + "\n"
-  output = output + "  SpanID: " + span.context.span_id.to_string() + "\n"
+  output = output + "  TraceID: " + span.traceId.to_string() + "\n"
+  output = output + "  SpanID: " + span.spanId.to_string() + "\n"
 
   // 親SpanIDの表示
-  match span.parent_span_id {
+  match span.parentSpanId {
     Some(parent_id) =>
       output = output + "  ParentSpanID: " + parent_id.to_string() + "\n"
     None => ()
   }
   output = output + "  Kind: " + span.kind.to_string() + "\n"
   output = output + "  Status: " + span.status.to_string() + "\n"
-  output = output + "  StartTime: " + span.start_time.to_string() + "ns\n"
+  output = output + "  StartTime: " + span.startTimeUnixNano.to_string() + "ns\n"
 
   // 期間の表示
   match span.duration() {

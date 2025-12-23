@@ -24,10 +24,16 @@ fn main {
   let parent_span = parent_span.add_event(event)
 
   // 子Spanの作成
+  let parent_context = @lib.SpanContext::new(
+    parent_span.traceId,
+    parent_span.spanId,
+    parent_span.flags,
+    false,
+  )
   let child_span = tracer
     .span_builder("database-query")
     .with_kind(@lib.SpanKind::Client)
-    .with_parent(parent_span.context)
+    .with_parent(parent_context)
     .with_attribute("db.system", @lib.AttributeValue::String("postgresql"))
     .with_attribute(
       "db.statement",

@@ -9,11 +9,13 @@ struct OtlpResourceSpans {
 struct OtlpResourceSpan {
   resource : Resource
   scopeSpans : Array[OtlpScopeSpan]
+  schemaUrl : String?
 } derive(ToJson)
 
 struct OtlpScopeSpan {
   scope : OtlpScope
   spans : Array[Span]
+  schemaUrl : String?
 } derive(ToJson)
 
 struct OtlpScope {
@@ -37,8 +39,8 @@ pub fn spans_to_resource_spans_json(spans : Array[Span]) -> String {
 
   // Build OTLP structure
   let scope : OtlpScope = { name: "otel-tracer", version: "1.0.0" }
-  let scope_span : OtlpScopeSpan = { scope, spans }
-  let resource_span : OtlpResourceSpan = { resource, scopeSpans: [scope_span] }
+  let scope_span : OtlpScopeSpan = { scope, spans, schemaUrl: None }
+  let resource_span : OtlpResourceSpan = { resource, scopeSpans: [scope_span], schemaUrl: None }
   let otlp : OtlpResourceSpans = { resourceSpans: [resource_span] }
 
   otlp.to_json().stringify()
