@@ -33,7 +33,6 @@ extern "js" fn http_post_impl(request_json : String, timeout_ms: Int, resolve: (
 #|       })
 #|       .then(resolve)
 #|       .catch(error => {
-#|console.log("fetch error:", error);
 #|         clearTimeout(timeoutId);
 #|         // Handle different error types
 #|         let errorBody = "Unknown error";

@@ -109,8 +109,8 @@ pub async fn OTLPExporter::export_spans(
 }
 
 // Explicit implementation of SpanExporter trait for OTLPExporter
-pub async fn OTLPExporter::shutdown(
-  self : OTLPExporter,
+pub fn OTLPExporter::shutdown(
+  _ : OTLPExporter,
 ) -> Unit {
   println("[OTLP] OTLPExporter shutdown")
 }
