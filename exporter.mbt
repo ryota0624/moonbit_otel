@@ -9,11 +9,12 @@ pub trait SpanExporter {
   async shutdown(Self) -> Unit
 }
 
-// ConsoleExporter: 標準出力にSpanを出力
+// ConsoleExporter: Spanを指定された出力関数で出力
 
 ///|
 pub struct ConsoleExporter {
   prefix : String // 出力時のプレフィックス
+  print_fn : (String) -> Unit // カスタム出力関数
 }
 
 ///|
@@ -33,7 +34,22 @@ pub impl SpanExporter for ConsoleExporter with shutdown(self : ConsoleExporter) 
 
 ///|
 pub fn ConsoleExporter::new() -> ConsoleExporter {
-  { prefix: "[OpenTelemetry]" }
+  { prefix: "[OpenTelemetry]", print_fn: println }
+}
+
+///|
+pub fn ConsoleExporter::with_print_fn(
+  print_fn : (String) -> Unit,
+) -> ConsoleExporter {
+  { prefix: "[OpenTelemetry]", print_fn }
+}
+
+///|
+pub fn ConsoleExporter::with_prefix_and_print_fn(
+  prefix : String,
+  print_fn : (String) -> Unit,
+) -> ConsoleExporter {
+  { prefix, print_fn }
 }
 
 // ConsoleExporterにSpanExporter traitを実装
@@ -44,13 +60,13 @@ pub fn ConsoleExporter::export_spans(
   spans : Array[Span],
 ) -> Unit {
   for span in spans {
-    println(self.prefix + " " + format_span(span))
+    (self.print_fn)(self.prefix + " " + format_span(span))
   }
 }
 
 ///|
 pub fn ConsoleExporter::shutdown(self : ConsoleExporter) -> Unit {
-  println(self.prefix + " ConsoleExporter shutdown")
+  (self.print_fn)(self.prefix + " ConsoleExporter shutdown")
 }
 
 // Spanを人間が読みやすい形式にフォーマット
