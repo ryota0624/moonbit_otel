@@ -107,7 +107,10 @@ pub async fn OTLPExporter::export_spans(
   headers.set("Content-Type", "application/json")
 
   // Send HTTP POST request
-  match http_post_json(self.config.endpoint, json_body, headers) {
+  match
+    self.config.http_client_factory
+    .create_client()
+    .http_post_json(self.config.endpoint, json_body, headers) {
     Ok(response) =>
       if response.status_code >= 200 && response.status_code < 300 {
         // Success - span exported successfully

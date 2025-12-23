@@ -4,6 +4,7 @@
     {
       "path": "ryota0624/moonbit_otel",
       "alias": "lib"
-    }
+    },
+    "moonbitlang/async"
   ]
 }

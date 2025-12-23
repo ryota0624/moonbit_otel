@@ -1,5 +1,6 @@
 ///|
-fn main {
+async fn main {
+  
   // Resourceの作成
   let resource = @lib.Resource::empty()
     .with_string(@lib.service_name, "demo-service")
@@ -63,7 +64,7 @@ fn main {
     "http://192.168.0.9:4318/v1/traces",
   )
   let otlp_exporter : &@lib.SpanExporter = @lib.OTLPExporter::new(otlp_config)
-  @lib.run_async(async fn() -> Unit noraise {
+    println("Starting OTLP Exporter...")
     try {
     // Spanを OTLP Collectorにエクスポート
     otlp_exporter.export_spans([child_span])
@@ -73,5 +74,5 @@ fn main {
     } catch {
       e => println("Error during OTLP export: " + e.to_string())
     }
-  })
+
 }

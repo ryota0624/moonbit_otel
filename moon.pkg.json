@@ -2,5 +2,10 @@
   "is-main": false,
   "targets": {
    "otlp_http_js.mbt": ["js"]  
-  }
+  },
+  "import": [
+    "moonbitlang/async/http",
+    "moonbitlang/async/io",
+    "moonbitlang/async"
+  ]
 }

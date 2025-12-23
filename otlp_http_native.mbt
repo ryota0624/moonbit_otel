@@ -1,59 +1,35 @@
-// FFI function for HTTP POST using JavaScript's fetch API
-// Input: JSON string containing HttpRequest { url, http_method, headers, body }
-// Output: JSON string containing HttpResponse { status_code, body }
-//
-// This function is imported from the JavaScript global scope (otel module)
-// You must define this in your JavaScript runtime before using MoonBit
-// fn http_post_impl(request_json : String) -> String = 
-// #| function httpPost(requestJson) {
-// #|   try {
-// #|     // Parse the request from MoonBit
-// #|     const request = JSON.parse(requestJson);
-// #|     const { url, http_method, headers, body } = request;#| 
-// #|     // Set timeout for the fetch request (30 seconds by default)
-// #|     const controller = new AbortController();
-// #|     const timeoutId = setTimeout(() => controller.abort(), 30000);#| 
-// #|     // Make the fetch request and return promise that resolves to JSON string
-// #|     return fetch(url, {
-// #|       method: http_method || "POST",
-// #|       headers: headers || { "Content-Type": "application/json" },
-// #|       body: body,
-// #|       signal: controller.signal,
-// #|     })
-// #|       .then(response => {
-// #|         clearTimeout(timeoutId);#| 
-// #|         // Read the response body
-// #|         return response.text().then(responseBody => {
-// #|           const result = {
-// #|             status_code: response.status,
-// #|             body: responseBody,
-// #|           };
-// #|           return JSON.stringify(result);
-// #|         });
-// #|       })
-// #|       .catch(error => {
-// #|         clearTimeout(timeoutId);#| 
-// #|         // Handle different error types
-// #|         let errorBody = "Unknown error";
-// #|         if (error.name === "AbortError") {
-// #|           errorBody = "Request timeout";
-// #|         } else if (error instanceof TypeError) {
-// #|           errorBody = `Network error: ${error.message}`;
-// #|         } else {
-// #|           errorBody = `Error: ${error.message}`;
-// #|         }#|
-// #|         const errorResponse = {
-// #|           status_code: 0,
-// #|           body: errorBody,
-// #|         };#| 
-// #|         return JSON.stringify(errorResponse);
-// #|       });
-// #|   } catch (error) {
-// #|     // Handle JSON parsing errors
-// #|     const errorResponse = {
-// #|       status_code: 0,
-// #|       body: `Invalid request format: ${error.message}`,
-// #|     };
-// #|     return JSON.stringify(errorResponse);
-// #|   }
-// #| }
+///|
+struct HttpClientOnAsyncHttp {}
+
+///|
+fn http_client_factory() -> &HttpClientFactory {
+  HttpClientOnAsyncHttp::{  }
+}
+
+///|
+impl HttpClient for HttpClientOnAsyncHttp with http_post_json(
+  _ : HttpClientOnAsyncHttp,
+  url : String,
+  body : String,
+  headers : Map[String, String],
+) -> Result[HttpResponse, HttpError] {
+  @async.with_timeout(5000, async fn() {
+    try {
+      let (response, data) = @http.post(url, body, headers~)
+      if response.code >= 200 && response.code < 300 {
+        Ok({ status_code: response.code, body: data.text(), error_code: None })
+      } else {
+        Err(HttpError::InvalidResponse(data.text()))
+      }
+    } catch {
+      err => Err(HttpError::NetworkError(err.to_string()))
+    }
+  }) // 5 seconds timeout
+}
+
+///|
+impl HttpClientFactory for HttpClientOnAsyncHttp with create_client(
+  _ : HttpClientOnAsyncHttp,
+) -> &HttpClient {
+  HttpClientOnAsyncHttp::{  }
+}

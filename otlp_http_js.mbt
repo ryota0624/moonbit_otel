@@ -6,10 +6,11 @@
 // You must define this in your JavaScript runtime before using MoonBit
 
 ///|
-struct HttpClientOnFetchApi {}
+priv struct HttpClientOnFetchApi {}
 
+///|
 pub fn http_client_factory() -> &HttpClientFactory {
-	HttpClientOnFetchApi::{}
+  HttpClientOnFetchApi::{  }
 }
 
 ///|
@@ -48,7 +49,12 @@ impl HttpClient for HttpClientOnFetchApi with http_post_json(
   body : String,
   headers : Map[String, String],
 ) -> Result[HttpResponse, HttpError] {
-  http_post_internal({ url, http_method: "POST", headers, body })
+  http_post_internal({
+    url,
+    http_method: "POST",
+    headers: default_headers().merge(headers),
+    body,
+  })
 }
 
 ///|

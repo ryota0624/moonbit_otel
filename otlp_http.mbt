@@ -31,27 +31,6 @@ fn default_headers() -> Map[String, String] {
   headers
 }
 
-// Make an HTTP POST request with JSON body
-// This is a wrapper that will use FFI for WASM or native HTTP client for native targets
-
-///|
-pub async fn http_post_json(
-  url : String,
-  body : String,
-  custom_headers : Map[String, String],
-) -> Result[HttpResponse, HttpError] {
-  // Merge default headers with custom headers
-  let headers = default_headers()
-  custom_headers.each(fn(key, value) { headers.set(key, value) })
-
-  // Build HTTP request
-  let request = { url, http_method: "POST", headers, body }
-
-  // Call native HTTP function (will be defined below based on target)
-  http_post_internal(request)
-}
-
-
 // Helper to build request headers
 
 ///|
