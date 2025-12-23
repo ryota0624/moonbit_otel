@@ -1,26 +1,49 @@
 // OTLP (OpenTelemetry Protocol) Exporter
 // Sends spans to an OpenTelemetry Collector via HTTP+JSON
 
+///|
+pub trait HttpClientFactory {
+  async create_client(Self) -> &HttpClient
+}
+
+///|
 pub struct OTLPExporterConfig {
   endpoint : String
   headers : Map[String, String]
   timeout_ms : Int
+  http_client_factory : &HttpClientFactory
 }
 
+///|
 pub struct OTLPExporter {
   config : OTLPExporterConfig
 }
 
+///|
+pub trait HttpClient {
+  async http_post_json(
+    Self,
+    url : String,
+    body : String,
+    headers : Map[String, String],
+  ) -> Result[HttpResponse, HttpError]
+}
+
 // Create default OTLP exporter configuration
+
+///|
 pub fn OTLPExporterConfig::default() -> OTLPExporterConfig {
   {
     endpoint: "http://localhost:4318/v1/traces",
     headers: Map::new(),
     timeout_ms: 30000,
+    http_client_factory: http_client_factory(),
   }
 }
 
 // Add a custom header to the configuration
+
+///|
 pub fn OTLPExporterConfig::with_header(
   self : OTLPExporterConfig,
   key : String,
@@ -28,48 +51,46 @@ pub fn OTLPExporterConfig::with_header(
 ) -> OTLPExporterConfig {
   let new_headers = self.headers.copy()
   new_headers.set(key, value)
-  {
-    endpoint: self.endpoint,
-    headers: new_headers,
-    timeout_ms: self.timeout_ms,
-  }
+  { ..self, endpoint: self.endpoint }
 }
 
 // Set the endpoint URL
+
+///|
 pub fn OTLPExporterConfig::with_endpoint(
   self : OTLPExporterConfig,
   endpoint : String,
 ) -> OTLPExporterConfig {
-  {
-    endpoint,
-    headers: self.headers,
-    timeout_ms: self.timeout_ms,
-  }
+  { ..self, endpoint, }
 }
 
 // Set the timeout in milliseconds
+
+///|
 pub fn OTLPExporterConfig::with_timeout(
   self : OTLPExporterConfig,
   timeout_ms : Int,
 ) -> OTLPExporterConfig {
-  {
-    endpoint: self.endpoint,
-    headers: self.headers,
-    timeout_ms,
-  }
+  { ..self, timeout_ms, }
 }
 
 // Create a new OTLP exporter with the given configuration
+
+///|
 pub fn OTLPExporter::new(config : OTLPExporterConfig) -> OTLPExporter {
   { config, }
 }
 
 // Create an OTLP exporter with default configuration
+
+///|
 pub fn OTLPExporter::with_default_config() -> OTLPExporter {
   OTLPExporter::new(OTLPExporterConfig::default())
 }
 
 // Explicit implementation of SpanExporter trait for OTLPExporter
+
+///|
 pub async fn OTLPExporter::export_spans(
   self : OTLPExporter,
   spans : Array[Span],
@@ -87,7 +108,7 @@ pub async fn OTLPExporter::export_spans(
 
   // Send HTTP POST request
   match http_post_json(self.config.endpoint, json_body, headers) {
-    Ok(response) => {
+    Ok(response) =>
       if response.status_code >= 200 && response.status_code < 300 {
         // Success - span exported successfully
         println("[OTLP] Exported " + spans.length().to_string() + " span(s)")
@@ -100,24 +121,28 @@ pub async fn OTLPExporter::export_spans(
           response.body,
         )
       }
-    }
-    Err(error) => {
+    Err(error) =>
       // Network or transport error
       println("[OTLP] Export error: " + error.to_string())
-    }
   }
 }
 
 // Explicit implementation of SpanExporter trait for OTLPExporter
-pub fn OTLPExporter::shutdown(
-  _ : OTLPExporter,
-) -> Unit {
+
+///|
+pub fn OTLPExporter::shutdown(_ : OTLPExporter) -> Unit {
   println("[OTLP] OTLPExporter shutdown")
 }
 
-pub impl SpanExporter for OTLPExporter with export_spans(self : OTLPExporter, spans : Array[Span]) -> Unit {
-    self.export_spans(spans)
-  }
+///|
+pub impl SpanExporter for OTLPExporter with export_spans(
+  self : OTLPExporter,
+  spans : Array[Span],
+) -> Unit {
+  self.export_spans(spans)
+}
+
+///|
 pub impl SpanExporter for OTLPExporter with shutdown(self : OTLPExporter) -> Unit {
-    self.shutdown()
-  }
+  self.shutdown()
+}
