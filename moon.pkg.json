@@ -1,6 +1,6 @@
 {
   "is-main": false,
   "targets": {
-   "_js.mbt": ["js"]  
+   "otlp_http_js.mbt": ["js"]  
   }
 }

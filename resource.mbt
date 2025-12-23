@@ -10,7 +10,21 @@ pub(all) enum AttributeValue {
   IntArray(Array[Int])
   BoolArray(Array[Bool])
   DoubleArray(Array[Double])
-} derive(Eq, Show, ToJson)
+} derive(Eq, Show)
+
+impl ToJson for AttributeValue with to_json(self : AttributeValue) -> Json {
+  match self {
+    AttributeValue::String(s) => Json::string(s)
+    AttributeValue::Int(i) => Json::number(i.to_double())
+    AttributeValue::Bool(b) => Json::boolean(b)
+    AttributeValue::Double(d) => Json::number(d)
+    AttributeValue::StringArray(arr) => Json::array(arr.map(fn(s) { Json::string(s) }))
+    AttributeValue::IntArray(arr) => Json::array(arr.map(fn(i) { Json::number(i.to_double()) }))
+    AttributeValue::BoolArray(arr) => Json::array(arr.map(fn(b) { Json::boolean(b) }))
+    AttributeValue::DoubleArray(arr) => Json::array(arr.map(fn(d) { Json::number(d) }))
+  }
+}
+
 
 // Resource represents an immutable representation of the entity producing telemetry.
 // For example, a process producing telemetry that is running in a container on Kubernetes

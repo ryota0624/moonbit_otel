@@ -57,6 +57,7 @@ async fn http_post_internal(
 ) -> Result[HttpResponse, HttpError] {
   // Serialize entire request to JSON
   let request_json = request.to_json().stringify()
+  println("[HTTP] Sending request: " + request_json)
   // Call the native HTTP function via FFI
   // The actual implementation will be provided by the JavaScript/Node.js runtime
   // See http_ffi.js for the JavaScript implementation

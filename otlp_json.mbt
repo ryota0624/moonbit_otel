@@ -23,7 +23,7 @@ struct OtlpScope {
 
 // Serialize a single Span to OTLP JSON format using ToJson
 pub fn span_to_json(span : Span) -> String {
-  span.to_json().to_string()
+  span.to_json().stringify()
 }
 
 // Serialize an array of Spans to OTLP resourceSpans JSON format
@@ -41,5 +41,5 @@ pub fn spans_to_resource_spans_json(spans : Array[Span]) -> String {
   let resource_span : OtlpResourceSpan = { resource, scopeSpans: [scope_span] }
   let otlp : OtlpResourceSpans = { resourceSpans: [resource_span] }
 
-  otlp.to_json().to_string()
+  otlp.to_json().stringify()
 }
