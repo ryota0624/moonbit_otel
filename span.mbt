@@ -3,7 +3,11 @@
 ///|
 pub struct TraceID {
   value : String // 32-character hex string
-} derive(Eq, Show, ToJson)
+} derive(Eq, Show)
+
+impl ToJson for TraceID with to_json(self : TraceID) -> Json {
+  Json::string(self.value)
+}
 
 // Create a new TraceID
 
@@ -31,7 +35,11 @@ pub fn TraceID::is_valid(self : TraceID) -> Bool {
 ///|
 pub struct SpanID {
   value : String // 16-character hex string
-} derive(Eq, Show, ToJson)
+} derive(Eq, Show)
+
+impl ToJson for SpanID with to_json(self : SpanID) -> Json {
+  Json::string(self.value)
+}
 
 // Create a new SpanID
 
@@ -141,7 +149,7 @@ pub struct Span {
   start_time : Int64
   end_time : Int64?
   status : SpanStatus
-  attributes : Map[String, AttributeValue]
+  attributes : Attributes
   events : Array[SpanEvent]
   parent_span_id : SpanID?
   resource : Resource
@@ -165,7 +173,7 @@ pub fn Span::new(
     start_time,
     end_time: None,
     status: SpanStatus::Unset,
-    attributes: Map::new(),
+    attributes: Attributes::new(),
     events: [],
     parent_span_id,
     resource,
@@ -180,9 +188,7 @@ pub fn Span::set_attribute(
   key : String,
   value : AttributeValue,
 ) -> Span {
-  let new_attributes = self.attributes.copy()
-  new_attributes.set(key, value)
-  { ..self, attributes: new_attributes }
+  { ..self, attributes: self.attributes.set(key, value) }
 }
 
 // Add an event to the Span

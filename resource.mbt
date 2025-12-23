@@ -6,22 +6,14 @@ pub(all) enum AttributeValue {
   Int(Int)
   Bool(Bool)
   Double(Double)
-  StringArray(Array[String])
-  IntArray(Array[Int])
-  BoolArray(Array[Bool])
-  DoubleArray(Array[Double])
 } derive(Eq, Show)
 
 impl ToJson for AttributeValue with to_json(self : AttributeValue) -> Json {
   match self {
-    AttributeValue::String(s) => Json::string(s)
-    AttributeValue::Int(i) => Json::number(i.to_double())
-    AttributeValue::Bool(b) => Json::boolean(b)
-    AttributeValue::Double(d) => Json::number(d)
-    AttributeValue::StringArray(arr) => Json::array(arr.map(fn(s) { Json::string(s) }))
-    AttributeValue::IntArray(arr) => Json::array(arr.map(fn(i) { Json::number(i.to_double()) }))
-    AttributeValue::BoolArray(arr) => Json::array(arr.map(fn(b) { Json::boolean(b) }))
-    AttributeValue::DoubleArray(arr) => Json::array(arr.map(fn(d) { Json::number(d) }))
+    AttributeValue::String(s) => Json::object({ "stringValue": Json::string(s) })
+    AttributeValue::Int(i) =>  Json::object({ "intValue": Json::number(i.to_double()) })
+    AttributeValue::Bool(b) => Json::object({ "boolValue": Json::boolean(b) })
+    AttributeValue::Double(d) => Json::object({ "doubleValue": Json::number(d) })
   }
 }
 
@@ -31,11 +23,33 @@ impl ToJson for AttributeValue with to_json(self : AttributeValue) -> Json {
 ///|
 pub struct Attributes {
   map : Map[String, AttributeValue]
-} derive(ToJson)
+}
+
+impl ToJson for Attributes with to_json(self : Attributes) -> Json {
+  self.map.map(fn(key, value) {
+    Json::object({ "key": Json::string(key), "value": value.to_json()})
+  }).to_json()
+}
+
 
 ///|
 pub fn Attributes::new() -> Attributes {
   { map: Map::new() }
+}
+
+pub fn Attributes::copy(self : Attributes) -> Attributes {
+  let new_map = self.map.copy()
+  { map: new_map }
+}
+
+pub fn Attributes::set(self : Attributes, key : String, value : AttributeValue) -> Attributes {
+  let new_map = self.map.copy()
+  new_map.set(key, value)
+  { map: new_map   }
+}
+
+pub fn Attributes::is_empty(self : Attributes) -> Bool {
+  self.map.is_empty()
 }
 
 ///|
@@ -79,50 +93,6 @@ pub fn Attributes::with_double(
 ) -> Attributes {
   let new_map = self.map.copy()
   new_map.set(key, Double(value))
-  { map: new_map }
-}
-
-///|
-pub fn Attributes::with_string_array(
-  self : Attributes,
-  key : String,
-  value : Array[String],
-) -> Attributes {
-  let new_map = self.map.copy()
-  new_map.set(key, StringArray(value))
-  { map: new_map }
-}
-
-///|
-pub fn Attributes::with_int_array(
-  self : Attributes,
-  key : String,
-  value : Array[Int],
-) -> Attributes {
-  let new_map = self.map.copy()
-  new_map.set(key, IntArray(value))
-  { map: new_map }
-}
-
-///|
-pub fn Attributes::with_bool_array(
-  self : Attributes,
-  key : String,
-  value : Array[Bool],
-) -> Attributes {
-  let new_map = self.map.copy()
-  new_map.set(key, BoolArray(value))
-  { map: new_map }
-}
-
-///|
-pub fn Attributes::with_double_array(
-  self : Attributes,
-  key : String,
-  value : Array[Double],
-) -> Attributes {
-  let new_map = self.map.copy()
-  new_map.set(key, DoubleArray(value))
   { map: new_map }
 }
 
@@ -252,55 +222,6 @@ pub fn Resource::with_double(
   let new_attributes = self.attributes.with_double(key, value)
   { attributes: new_attributes }
 }
-
-// Add a string array attribute to the Resource, returning a new Resource
-
-///|
-pub fn Resource::with_string_array(
-  self : Resource,
-  key : String,
-  value : Array[String],
-) -> Resource {
-  let new_attributes = self.attributes.with_string_array(key, value)
-  { attributes: new_attributes }
-}
-
-// Add an int array attribute to the Resource, returning a new Resource
-
-///|
-pub fn Resource::with_int_array(
-  self : Resource,
-  key : String,
-  value : Array[Int],
-) -> Resource {
-  let new_attributes = self.attributes.with_int_array(key, value)
-  { attributes: new_attributes }
-}
-
-// Add a bool array attribute to the Resource, returning a new Resource
-
-///|
-pub fn Resource::with_bool_array(
-  self : Resource,
-  key : String,
-  value : Array[Bool],
-) -> Resource {
-  let new_attributes = self.attributes.with_bool_array(key, value)
-  { attributes: new_attributes }
-}
-
-// Add a double array attribute to the Resource, returning a new Resource
-
-///|
-pub fn Resource::with_double_array(
-  self : Resource,
-  key : String,
-  value : Array[Double],
-) -> Resource {
-  let new_attributes = self.attributes.with_double_array(key, value)
-  { attributes: new_attributes }
-}
-
 // Get an attribute value from the Resource
 
 ///|
@@ -359,10 +280,6 @@ pub fn Resource::merge(self : Resource, other : Resource) -> Resource {
       Int(i) => result = result.with_int(key, i)
       Bool(b) => result = result.with_bool(key, b)
       Double(d) => result = result.with_double(key, d)
-      StringArray(arr) => result = result.with_string_array(key, arr)
-      IntArray(arr) => result = result.with_int_array(key, arr)
-      BoolArray(arr) => result = result.with_bool_array(key, arr)
-      DoubleArray(arr) => result = result.with_double_array(key, arr)
     }
   })
   { attributes: result }

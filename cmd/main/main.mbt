@@ -60,7 +60,7 @@ fn main {
   @lib.run_async(async fn() -> Unit noraise {
     try {
     // Spanを OTLP Collectorにエクスポート
-    otlp_exporter.export_spans([child_span, parent_span])
+    otlp_exporter.export_spans([child_span])
 
     // OTLPExporterをシャットダウン
     otlp_exporter.shutdown()

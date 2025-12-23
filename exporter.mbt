@@ -95,7 +95,7 @@ fn format_span(span : Span) -> String {
   }
 
   // 属性の表示
-  if span.attributes.length() > 0 {
+  if not(span.attributes.is_empty()) {
     output = output + "  Attributes:\n"
     span.attributes.each(fn(key, value) {
       output = output +
@@ -117,7 +117,7 @@ fn format_span(span : Span) -> String {
         " @ " +
         event.timestamp.to_string() +
         "ns\n"
-      if event.attributes.length() > 0 {
+      if not(event.attributes.is_empty()) {
         event.attributes.each(fn(key, value) {
           output = output +
             "      " +
@@ -141,45 +141,5 @@ fn format_attribute_value(value : AttributeValue) -> String {
     AttributeValue::Int(i) => i.to_string()
     AttributeValue::Bool(b) => b.to_string()
     AttributeValue::Double(d) => d.to_string()
-    AttributeValue::StringArray(arr) => {
-      let mut result = "["
-      for i = 0; i < arr.length(); i = i + 1 {
-        if i > 0 {
-          result = result + ", "
-        }
-        result = result + "\"" + arr[i] + "\""
-      }
-      result + "]"
-    }
-    AttributeValue::IntArray(arr) => {
-      let mut result = "["
-      for i = 0; i < arr.length(); i = i + 1 {
-        if i > 0 {
-          result = result + ", "
-        }
-        result = result + arr[i].to_string()
-      }
-      result + "]"
-    }
-    AttributeValue::BoolArray(arr) => {
-      let mut result = "["
-      for i = 0; i < arr.length(); i = i + 1 {
-        if i > 0 {
-          result = result + ", "
-        }
-        result = result + arr[i].to_string()
-      }
-      result + "]"
-    }
-    AttributeValue::DoubleArray(arr) => {
-      let mut result = "["
-      for i = 0; i < arr.length(); i = i + 1 {
-        if i > 0 {
-          result = result + ", "
-        }
-        result = result + arr[i].to_string()
-      }
-      result + "]"
-    }
   }
 }

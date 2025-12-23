@@ -122,9 +122,7 @@ pub fn SpanBuilder::start(self : SpanBuilder, tracer : Tracer) -> Span {
 
   // Add all attributes from the builder
   self.attributes.each(fn(key, value) {
-    let new_attrs = span.attributes.copy()
-    new_attrs.set(key, value)
-    span = { ..span, attributes: new_attrs }
+    span = { ..span, attributes: span.attributes.set(key, value) }
   })
   span
 }
