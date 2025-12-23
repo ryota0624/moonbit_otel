@@ -1,1 +1,10 @@
-{ "name": "ryota0624/moonbit-otel-wasi", "preferred-target": "wasm" }
+{
+	"name": "ryota0624/moonbit-otel-wasi",
+	"preferred-target": "wasm",
+	"deps": {
+		"ryota0624/moonbit_otel": {
+			"version": "0.1.0",
+			"path": "../"
+		}
+	}
+}
