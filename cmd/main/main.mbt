@@ -52,19 +52,19 @@ pub async fn run_example(factory : &@lib.HttpClientFactory) -> Unit {
   let console_exporter = @lib.ConsoleExporter::new()
 
   // Spanをコンソールにエクスポート
-  println("=== Exporting Spans to Console ===")
+  // println("=== Exporting Spans to Console ===")
   console_exporter.export_spans([child_span, parent_span])
 
   // ConsoleExporterをシャットダウン
   console_exporter.shutdown()
 
   // OTLPExporterの作成
-  println("\n=== Exporting Spans to OTLP Collector ===")
+    // println("\n=== Exporting Spans to OTLP Collector ===")
   let otlp_config = @lib.OTLPExporterConfig::default(factory).with_endpoint(
     "http://192.168.0.9:4318/v1/traces",
   )
   let otlp_exporter : &@lib.SpanExporter = @lib.OTLPExporter::new(otlp_config)
-  println("Starting OTLP Exporter...")
+  // println("Starting OTLP Exporter...")
   try {
     // Spanを OTLP Collectorにエクスポート
     otlp_exporter.export_spans([child_span])
@@ -72,6 +72,8 @@ pub async fn run_example(factory : &@lib.HttpClientFactory) -> Unit {
     // OTLPExporterをシャットダウン
     otlp_exporter.shutdown()
   } catch {
-    e => println("Error during OTLP export: " + e.to_string())
+    e => 
+     ()
+    // println("Error during OTLP export: " + e.to_string())
   }
 }

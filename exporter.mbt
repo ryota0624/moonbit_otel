@@ -34,7 +34,7 @@ pub impl SpanExporter for ConsoleExporter with shutdown(self : ConsoleExporter) 
 
 ///|
 pub fn ConsoleExporter::new() -> ConsoleExporter {
-  { prefix: "[OpenTelemetry]", print_fn: println }
+  { prefix: "[OpenTelemetry]", print_fn: (str) => () }
 }
 
 ///|

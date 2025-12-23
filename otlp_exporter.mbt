@@ -130,19 +130,20 @@ pub async fn OTLPExporter::export_spans(
     Ok(response) =>
       if response.status_code >= 200 && response.status_code < 300 {
         // Success - span exported successfully
-        println("[OTLP] Exported " + spans.length().to_string() + " span(s)")
+        // println("[OTLP] Exported " + spans.length().to_string() + " span(s)")
       } else {
         // HTTP error response
-        println(
-          "[OTLP] Export failed with status " +
-          response.status_code.to_string() +
-          ": " +
-          response.body,
-        )
+        // println(
+        //   "[OTLP] Export failed with status " +
+        //   response.status_code.to_string() +
+        //   ": " +
+        //   response.body,
+        // )
       }
     Err(error) =>
       // Network or transport error
-      println("[OTLP] Export error: " + error.to_string())
+      // println("[OTLP] Export error: " + error.to_string())
+      ()
   }
 }
 
@@ -150,7 +151,7 @@ pub async fn OTLPExporter::export_spans(
 
 ///|
 pub fn OTLPExporter::shutdown(_ : OTLPExporter) -> Unit {
-  println("[OTLP] OTLPExporter shutdown")
+ // println("[OTLP] OTLPExporter shutdown")
 }
 
 ///|

@@ -6,7 +6,8 @@ fn main {
 			@cmd_main.run_example(factory)
 		} catch {
 			err => {
-				println("Error: " + err.to_string())
+				// println("Error: " + err.to_string())
+				()
 			}
 		}
 	})
