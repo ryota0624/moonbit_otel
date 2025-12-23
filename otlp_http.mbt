@@ -18,7 +18,7 @@ pub struct HttpResponse {
 ///|
 pub enum HttpError {
   NetworkError(String)
-  TimeoutError
+  // TimeoutError
   InvalidResponse(String)
 } derive(Show)
 

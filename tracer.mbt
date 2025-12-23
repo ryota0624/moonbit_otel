@@ -132,7 +132,7 @@ pub fn SpanBuilder::start(self : SpanBuilder, tracer : Tracer) -> Span {
 // Tracer methods for creating spans
 
 ///|
-pub fn Tracer::span_builder(self : Tracer, name : String) -> SpanBuilder {
+pub fn Tracer::span_builder(_ : Tracer, name : String) -> SpanBuilder {
   SpanBuilder::new(name)
 }
 
