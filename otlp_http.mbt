@@ -12,7 +12,7 @@ pub struct HttpRequest {
 pub struct HttpResponse {
   status_code : Int
   body : String
-  error_code : Option[Int]
+  error_code : Int?
 } derive(ToJson, FromJson)
 
 ///|
@@ -21,15 +21,6 @@ pub enum HttpError {
   // TimeoutError
   InvalidResponse(String)
 } derive(Show)
-
-// Default headers for OTLP JSON requests
-
-///|
-fn default_headers() -> Map[String, String] {
-  let headers = Map::new()
-  headers.set("Content-Type", "application/json")
-  headers
-}
 
 // Helper to build request headers
 

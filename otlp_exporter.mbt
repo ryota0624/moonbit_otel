@@ -17,6 +17,7 @@ pub struct OTLPExporterConfig {
 ///|
 pub struct OTLPExporter {
   config : OTLPExporterConfig
+  priv mut http_client : &HttpClient?
 }
 
 ///|
@@ -78,7 +79,7 @@ pub fn OTLPExporterConfig::with_timeout(
 
 ///|
 pub fn OTLPExporter::new(config : OTLPExporterConfig) -> OTLPExporter {
-  { config, }
+  { config, http_client: None }
 }
 
 // Create an OTLP exporter with default configuration
@@ -105,6 +106,9 @@ pub async fn OTLPExporter::export_spans(
   // Prepare HTTP headers
   let headers = self.config.headers.copy()
   headers.set("Content-Type", "application/json")
+  if self.http_client is None {
+    self.http_client = Some(self.config.http_client_factory.create_client())
+  }
 
   // Send HTTP POST request
   match
