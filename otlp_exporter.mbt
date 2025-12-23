@@ -70,7 +70,7 @@ pub fn OTLPExporter::with_default_config() -> OTLPExporter {
 }
 
 // Explicit implementation of SpanExporter trait for OTLPExporter
-pub fn OTLPExporter::export_spans(
+pub async fn OTLPExporter::export_spans(
   self : OTLPExporter,
   spans : Array[Span],
 ) -> Unit {
@@ -109,7 +109,7 @@ pub fn OTLPExporter::export_spans(
 }
 
 // Explicit implementation of SpanExporter trait for OTLPExporter
-pub fn OTLPExporter::shutdown(
+pub async fn OTLPExporter::shutdown(
   self : OTLPExporter,
 ) -> Unit {
   println("[OTLP] OTLPExporter shutdown")

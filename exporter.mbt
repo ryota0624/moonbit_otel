@@ -3,10 +3,10 @@
 ///|
 pub trait SpanExporter {
   // Spanのバッチをエクスポート
-  export_spans(Self, Array[Span]) -> Unit
+  async export_spans(Self, Array[Span]) -> Unit
 
   // Exporterをシャットダウン
-  shutdown(Self) -> Unit
+  async shutdown(Self) -> Unit
 }
 
 // ConsoleExporter: 標準出力にSpanを出力
@@ -16,14 +16,18 @@ pub struct ConsoleExporter {
   prefix : String // 出力時のプレフィックス
 }
 
-pub impl SpanExporter for ConsoleExporter with export_spans(self : ConsoleExporter, spans : Array[Span]) -> Unit {
-    self.export_spans(spans)
-  }
+///|
+pub impl SpanExporter for ConsoleExporter with export_spans(
+  self : ConsoleExporter,
+  spans : Array[Span],
+) -> Unit {
+  self.export_spans(spans)
+}
 
+///|
 pub impl SpanExporter for ConsoleExporter with shutdown(self : ConsoleExporter) -> Unit {
-    self.shutdown()
-  }
-
+  self.shutdown()
+}
 
 // ConsoleExporterの作成
 

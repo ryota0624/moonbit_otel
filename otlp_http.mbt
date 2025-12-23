@@ -1,5 +1,6 @@
 // HTTP client abstraction for making OTLP export requests
 
+///|
 pub struct HttpRequest {
   url : String
   http_method : String
@@ -7,11 +8,14 @@ pub struct HttpRequest {
   body : String
 } derive(ToJson, FromJson)
 
+///|
 pub struct HttpResponse {
   status_code : Int
   body : String
+  error_code : Option[Int]
 } derive(ToJson, FromJson)
 
+///|
 pub enum HttpError {
   NetworkError(String)
   TimeoutError
@@ -19,6 +23,8 @@ pub enum HttpError {
 } derive(Show)
 
 // Default headers for OTLP JSON requests
+
+///|
 fn default_headers() -> Map[String, String] {
   let headers = Map::new()
   headers.set("Content-Type", "application/json")
@@ -27,7 +33,9 @@ fn default_headers() -> Map[String, String] {
 
 // Make an HTTP POST request with JSON body
 // This is a wrapper that will use FFI for WASM or native HTTP client for native targets
-pub fn http_post_json(
+
+///|
+pub async fn http_post_json(
   url : String,
   body : String,
   custom_headers : Map[String, String],
@@ -37,32 +45,36 @@ pub fn http_post_json(
   custom_headers.each(fn(key, value) { headers.set(key, value) })
 
   // Build HTTP request
-  let request = {
-    url,
-    http_method: "POST",
-    headers,
-    body,
-  }
+  let request = { url, http_method: "POST", headers, body }
 
   // Call native HTTP function (will be defined below based on target)
   http_post_internal(request)
 }
 
-fn http_post_internal(
+///|
+async fn http_post_internal(
   request : HttpRequest,
 ) -> Result[HttpResponse, HttpError] {
   // Serialize entire request to JSON
-  let request_json = request.to_json().to_string()
-
+  let request_json = request.to_json().stringify()
   // Call the native HTTP function via FFI
   // The actual implementation will be provided by the JavaScript/Node.js runtime
   // See http_ffi.js for the JavaScript implementation
-  let response_json_str = http_post_impl(request_json)
+  let response_json_str = suspend((resolve, _) => http_post_impl(
+    request_json,
+    500,
+    responseStr => resolve(responseStr),
+  ))
 
   // Parse response: String -> Json -> HttpResponse
   try {
     let json = @json.parse(response_json_str)
     let response : HttpResponse = @json.from_json(json)
+    println(response.to_json().stringify())
+    if response.status_code == 0 {
+      /// TODO: Differentiate timeout vs network errors
+      return Err(HttpError::NetworkError(response.body))
+    }
     Ok(response)
   } catch {
     _err => Err(HttpError::InvalidResponse("Failed to parse HTTP response"))
@@ -70,10 +82,13 @@ fn http_post_internal(
 }
 
 // Helper to build request headers
+
+///|
 pub fn make_headers_map() -> Map[String, String] {
   Map::new()
 }
 
+///|
 pub fn add_header(
   headers : Map[String, String],
   key : String,

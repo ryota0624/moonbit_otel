@@ -53,13 +53,19 @@ fn main {
 
   // OTLPExporterの作成
   println("\n=== Exporting Spans to OTLP Collector ===")
-  let otlp_config = @lib.OTLPExporterConfig::default()
-    .with_endpoint("http://localhost:4318/v1/traces")
-  let otlp_exporter: &@lib.SpanExporter = @lib.OTLPExporter::new(otlp_config)
+  let otlp_config = @lib.OTLPExporterConfig::default().with_endpoint(
+    "http://localhost:4318/v1/traces",
+  )
+  let otlp_exporter : &@lib.SpanExporter = @lib.OTLPExporter::new(otlp_config)
+  @lib.run_async(async fn() -> Unit noraise {
+    try {
+    // Spanを OTLP Collectorにエクスポート
+    otlp_exporter.export_spans([child_span, parent_span])
 
-  // Spanを OTLP Collectorにエクスポート
-  otlp_exporter.export_spans([child_span, parent_span])
-
-  // OTLPExporterをシャットダウン
-  otlp_exporter.shutdown()
+    // OTLPExporterをシャットダウン
+    otlp_exporter.shutdown()
+    } catch {
+      e => println("Error during OTLP export: " + e.to_string())
+    }
+  })
 }
