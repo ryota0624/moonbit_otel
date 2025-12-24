@@ -3,15 +3,34 @@
 ///|
 /// Run the program.
 pub fn run() -> Result[Unit, Unit] {
-
+  let stdout = @stdout.get_stdout()
+  ignore(stdout.write(@encoding/utf8.encode("start\n").to_fixedarray()))
   let factory = @lib.http_client_factory()
   run_async(fn() {
-    @cmd_main.run_example(factory) catch {
-      err =>
-        // println("Error: " + err.to_string())
+    @cmd_main.run_example(
+      @otel.OTLPExporterConfig::default(factory)
+      |> @otel.OTLPExporterConfig::with_endpoint(
+        "http://192.168.0.9:4318/v1/traces",
+      )
+      |> @otel.OTLPExporterConfig::with_logger_factory(() => @otel.InternalLogger::with_fn(fn(
+          msg : String,
+        ) {
+          let _ = stdout.write(
+            @encoding/utf8.encode("LOG: \{msg}\n").to_fixedarray(),
+          )
+
+        },
+      )),
+    ) catch {
+      err => {
+        let _ = stdout.write(
+          @encoding/utf8.encode("Error occurred during execution.\n \{err}").to_fixedarray(),
+        )
         ()
+      }
     }
   })
+  ignore(stdout.write(@encoding/utf8.encode("end\n").to_fixedarray()))
   Ok(())
 }
 

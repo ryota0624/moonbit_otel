@@ -6,7 +6,7 @@ pub trait SpanExporter {
   async export_spans(Self, Array[Span]) -> Unit
 
   // Exporterをシャットダウン
-  async shutdown(Self) -> Unit
+  shutdown(Self) -> Unit
 }
 
 // ConsoleExporter: Spanを指定された出力関数で出力

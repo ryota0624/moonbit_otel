@@ -81,6 +81,14 @@ pub fn OTLPExporterConfig::with_timeout(
 }
 
 ///|
+pub fn OTLPExporterConfig::with_logger_factory(
+  self : OTLPExporterConfig,
+  logger_factory : () -> InternalLogger,
+) -> OTLPExporterConfig {
+  { ..self, logger_factory, }
+}
+
+///|
 pub fn OTLPExporterConfig::with_http_client_factory(
   self : OTLPExporterConfig,
   factory : &HttpClientFactory,
@@ -92,7 +100,7 @@ pub fn OTLPExporterConfig::with_http_client_factory(
 
 ///|
 pub fn OTLPExporter::new(config : OTLPExporterConfig) -> OTLPExporter {
-  { config, http_client: None, logger: InternalLogger::none() }
+  { config, http_client: None, logger: (config.logger_factory)() }
 }
 
 // Create an OTLP exporter with default configuration
@@ -111,6 +119,12 @@ pub async fn OTLPExporter::export_spans(
   self : OTLPExporter,
   spans : Array[Span],
 ) -> Unit {
+  self.logger.log(
+    "[OTLP] Exporting " +
+    spans.length().to_string() +
+    " span(s) to " +
+    self.config.endpoint,
+  )
   if spans.length() == 0 {
     return
   }
@@ -133,7 +147,9 @@ pub async fn OTLPExporter::export_spans(
     Ok(response) =>
       if response.status_code >= 200 && response.status_code < 300 {
         // Success - span exported successfully
-        // println("[OTLP] Exported " + spans.length().to_string() + " span(s)")
+        self.logger.log(
+          "[OTLP] Exported " + spans.length().to_string() + " span(s)",
+        )
       } else {
         // HTTP error response
         self.logger.log(
@@ -152,8 +168,8 @@ pub async fn OTLPExporter::export_spans(
 // Explicit implementation of SpanExporter trait for OTLPExporter
 
 ///|
-pub fn OTLPExporter::shutdown(_ : OTLPExporter) -> Unit {
-  // println("[OTLP] OTLPExporter shutdown")
+pub fn OTLPExporter::shutdown(self : OTLPExporter) -> Unit {
+  self.logger.log("[OTLP] OTLPExporter shutdown")
 }
 
 ///|
@@ -161,10 +177,14 @@ pub impl SpanExporter for OTLPExporter with export_spans(
   self : OTLPExporter,
   spans : Array[Span],
 ) -> Unit {
-  self.export_spans(spans)
+  self.logger.log("[OTLP] Starting export of spans asynchronously")
+  self.export_spans(spans) catch {
+    err => self.logger.log("[OTLP] Error during export: " + err.to_string())
+  }
 }
 
 ///|
+///[]
 pub impl SpanExporter for OTLPExporter with shutdown(self : OTLPExporter) -> Unit {
   self.shutdown()
 }

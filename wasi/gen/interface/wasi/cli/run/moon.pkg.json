@@ -5,16 +5,16 @@
 			"alias": "cmd_main"
 		},
 		{
+			"path": "ryota0624/moonbit_otel",
+			"alias": "otel"
+		},
+		{
 			"path": "ryota0624/moonbit-otel-wasi",
 			"alias": "lib"
 		},
 		{
-			"path": "ryota0624/moonbit-otel-wasi/gen/world/otelWasm",
-			"alias": "world"
-		},
-		{
-			"path": "ryota0624/moonbit-otel-wasi/ffi",
-			"alias": "ffi"
+			"path": "ryota0624/moonbit-otel-wasi/interface/wasi/cli/stdout",
+			"alias": "stdout"
 		}
 	]
 }
