@@ -3,14 +3,30 @@
 ///|
 /// Run the program.
 pub fn run() -> Result[Unit, Unit] {
-  let adaptor = @otel.StdoutSendAdaptor::new(stdout_string_println)
   let stdout = @stdout.get_stdout()
   ignore(stdout.write(@encoding/utf8.encode("start\n").to_fixedarray()))
   run_async(fn() {
     @cmd_main.run_example(
-      @otel.OTLPExporterConfig::default(@otel.Stdout(adaptor)).enable_debug_log(
+      @otel.OTLPExporterConfig::stdout(stdout_string_println).enable_debug_log(
         print=stdout_println,
       ),
+      print=stdout_string_println,
+    ) catch {
+      err => {
+        let _ = stdout.write(
+          @encoding/utf8.encode("Error occurred during execution.\n \{err}").to_fixedarray(),
+        )
+        ()
+      }
+    }
+    ignore(
+      stdout.write(@encoding/utf8.encode("start with http\n").to_fixedarray()),
+    )
+    @cmd_main.run_example(
+      @otel.OTLPExporterConfig::http(
+        @lib.http_client_factory(),
+        endpoint="http://192.168.0.9:4318/v1/traces",
+      ).enable_debug_log(print=stdout_println),
       print=stdout_string_println,
     ) catch {
       err => {

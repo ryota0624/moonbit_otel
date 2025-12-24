@@ -69,6 +69,29 @@ pub fn OTLPExporterConfig::default(
 ) -> OTLPExporterConfig {
   { logger_factory: () => InternalLogger::none(), export_adapter }
 }
+
+///|
+pub fn OTLPExporterConfig::stdout(
+  print : (String) -> Unit,
+) -> OTLPExporterConfig {
+  OTLPExporterConfig::default(
+    ExportAdapter::Stdout(StdoutSendAdaptor::new(print)),
+  )
+}
+
+///|
+pub fn OTLPExporterConfig::http(
+  client_factory : &HttpClientFactory,
+  endpoint? : String = "http://localhost:4318/v1/traces",
+  headers? : Map[String, String] = {},
+) -> OTLPExporterConfig {
+  OTLPExporterConfig::default(
+    ExportAdapter::Http(
+      HttpSendAdaptor::new(client_factory, endpoint~, headers~),
+    ),
+  )
+}
+
 // Set the endpoint URL
 // Set the timeout in milliseconds
 

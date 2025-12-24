@@ -1,5 +1,5 @@
 ///|
-struct HttpClientOnAsyncHttp {}
+priv struct HttpClientOnAsyncHttp {}
 
 ///|
 pub fn http_client_factory() -> &@lib.HttpClientFactory {
