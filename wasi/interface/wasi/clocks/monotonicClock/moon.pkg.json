@@ -1,1 +1,1 @@
-{ "import": [{ "path" : "ryota0624/moonbit-otel-wasi/interface/wasi/io/poll", "alias" : "poll" }] }
+{ "import": [{ "path" : "ryota0624/moonbit-otel-wasi/interface/wasi/io/poll", "alias" : "poll" }], "warn-list": "-44" }

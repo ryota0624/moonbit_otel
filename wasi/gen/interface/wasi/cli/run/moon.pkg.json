@@ -16,5 +16,6 @@
 			"path": "ryota0624/moonbit-otel-wasi/interface/wasi/cli/stdout",
 			"alias": "stdout"
 		}
-	]
+	],
+	"warn-list": "-44"
 }

@@ -1,1 +1,1 @@
-{ "import": [{ "path" : "ryota0624/moonbit-otel-wasi/interface/wasi/io/streams", "alias" : "streams" }] }
+{ "import": [{ "path" : "ryota0624/moonbit-otel-wasi/interface/wasi/io/streams", "alias" : "streams" }], "warn-list": "-44" }
