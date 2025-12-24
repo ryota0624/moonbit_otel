@@ -7,6 +7,24 @@ pub fn http_client_factory() -> &@otel.HttpClientFactory {
 }
 
 ///|
+fn parseUrl(url : String) -> (@types.Scheme, String, String) {
+  let exclude_schema = url
+    .replace(old="https://", new="")
+    .replace(old="http://", new="")
+    .split("/")
+    .to_array()
+  (
+    if url.has_prefix("https://") {
+      @types.Scheme::Https
+    } else {
+      @types.Scheme::Http
+    },
+    exclude_schema[0].to_string(),
+    exclude_schema[1:].join("/"),
+  )
+}
+
+///|
 impl @otel.HttpClient for HttpClientOnWasiHttp with http_post_json(
   _ : HttpClientOnWasiHttp,
   url : String,
@@ -28,126 +46,95 @@ impl @otel.HttpClient for HttpClientOnWasiHttp with http_post_json(
     }
   }
   let req = @types.OutgoingRequest::outgoing_request(field)
-  let _ = req.set_scheme(
-    if url.has_prefix("https://") {
-      Some(@types.Scheme::Https)
-    } else {
-      Some(@types.Scheme::Http)
-    },
-  )
-  let authority = url
-    .replace(old="https://", new="")
-    .replace(old="http://", new="")
-    .split("/")
-    .to_array()[0]
+  let (schema, authority, path) = parseUrl(url)
+  let _ = req.set_scheme(schema |> Some(_))
   let _ = req.set_authority(Some(authority.to_string()))
-  let _ = req.set_path_with_query(
-    Some(
-      url
-      .replace(old="https://", new="")
-      .replace(old="http://", new="")
-      .replace(old=authority, new=""),
-    ),
-  )
+  let _ = req.set_path_with_query(Some(path))
   let _ = req.set_method(@types.Method::Post)
   let _ = stdout.write(
     @encoding/utf8.encode("Sending HTTP POST to \{url}\n").to_fixedarray(),
   )
-  let _ = match req.body() {
-    Ok(b) => {
-      let stream = b.write()
-      guard stream is Ok(write) else {
-        return Err(
-          @otel.HttpError::NetworkError("Failed to get request body stream"),
-        )
-      }
-      let body_bytes = @encoding/utf8.encode(body)
-      guard write.write(body_bytes.to_fixedarray()) is Ok(_) else {
-        return Err(
-          @otel.HttpError::NetworkError("Failed to write request body"),
-        )
-      }
-      guard write.flush() is Ok(_) else {
-        return Err(
-          @otel.HttpError::NetworkError("Failed to flush request body"),
-        )
-      }
-      let sub = write.subscribe()
-      sub.block()
-      guard b.finish(Some(field)) is Ok(_) else {
-        return Err(
-          @otel.HttpError::NetworkError("Failed to finish request body"),
-        )
-      }
-      Ok(())
-    }
-    Err(_) =>
-      return Err(@otel.HttpError::NetworkError("Failed to set request body"))
+  guard req.body() is Ok(b) else {
+    return Err(@otel.HttpError::NetworkError("Failed to create request body"))
   }
+  let stream = b.write()
+  guard stream is Ok(write) else {
+    return Err(
+      @otel.HttpError::NetworkError("Failed to get request body stream"),
+    )
+  }
+  defer write.drop()
+  let body_bytes = @encoding/utf8.encode(body)
+  guard write.write(body_bytes.to_fixedarray()) is Ok(_) else {
+    return Err(@otel.HttpError::NetworkError("Failed to write request body"))
+  }
+  guard write.flush() is Ok(_) else {
+    return Err(@otel.HttpError::NetworkError("Failed to flush request body"))
+  }
+  let write_sub = write.subscribe()
+  write_sub.block()
+  defer write_sub.drop()
+  guard b.finish(None) is Ok(_) else {
+    return Err(@otel.HttpError::NetworkError("Failed to finish request body"))
+  }
+
+  // Send the request using OutgoingHandler
   let result = @outgoingHandler.handle(req, None)
-  match result {
-    Ok(response) => {
-      let sub = response.subscribe()
-      sub.block()
-      let res = response.get()
-      if res is None {
-        return Err(
-          @otel.HttpError::InvalidResponse("No response received".to_string()),
-        )
-      }
-      match res {
-        None =>
-          return Err(
-            @otel.HttpError::InvalidResponse("Empty response".to_string()),
-          )
-        Some(resp) =>
-          match resp {
-            Ok(http_response) =>
-              match http_response {
-                Ok(http_res) => {
-                  guard http_res.consume() is Ok(body) else {
-                    return Err(
-                      @otel.HttpError::InvalidResponse(
-                        "Failed to consume HTTP response".to_string(),
-                      ),
-                    )
-                  }
-                  let body_stream = body.stream()
-                  guard body_stream is Ok(data) else {
-                    return Err(
-                      @otel.HttpError::InvalidResponse(
-                        "No body data received".to_string(),
-                      ),
-                    )
-                  }
-                  data.subscribe().block()
-                  let response_content = read_all(data)
-                  guard response_content is Ok(content) else {
-                    return Err(
-                      @otel.HttpError::InvalidResponse(
-                        "Failed to read response content".to_string(),
-                      ),
-                    )
-                  }
-                  return Ok(@otel.HttpResponse::{
-                    status_code: http_res.status().to_double().to_int(),
-                    body: content,
-                    error_code: None,
-                  })
-                }
-                Err(err) =>
-                  return Err(
-                    @otel.HttpError::InvalidResponse(
-                      "No HTTP response received \{err}",
-                    ),
-                  )
-              }
-            Err(_) => return Err(@otel.HttpError::NetworkError("Result::Err"))
-          }
-      }
-    }
-    Err(err) => return Err(@otel.HttpError::NetworkError(err.to_string()))
+  guard result is Ok(response) else {
+    return Err(@otel.HttpError::NetworkError("Failed to send HTTP request"))
   }
+  let response_sub = response.subscribe()
+  response_sub.block()
+  let res = response.get()
+  guard res is Some(http_response) else {
+    return Err(
+      @otel.HttpError::InvalidResponse("No response received".to_string()),
+    )
+  }
+  guard http_response is Ok(http_response) else {
+    return Err(
+      @otel.HttpError::InvalidResponse(
+        "Failed to get HTTP response".to_string(),
+      ),
+    )
+  }
+  guard http_response is Ok(http_res) else {
+    return Err(
+      @otel.HttpError::InvalidResponse(
+        "Failed to get HTTP response".to_string(),
+      ),
+    )
+  }
+  defer http_res.drop()
+  guard http_res.consume() is Ok(body) else {
+    return Err(
+      @otel.HttpError::InvalidResponse(
+        "Failed to consume HTTP response".to_string(),
+      ),
+    )
+  }
+  defer body.drop()
+  let body_stream = body.stream()
+  guard body_stream is Ok(data) else {
+    return Err(
+      @otel.HttpError::InvalidResponse("No body data received".to_string()),
+    )
+  }
+  defer data.drop()
+  data.subscribe().block()
+  let response_content = read_all(data)
+  guard response_content is Ok(content) else {
+    return Err(
+      @otel.HttpError::InvalidResponse(
+        "Failed to read response content".to_string(),
+      ),
+    )
+  }
+  return Ok(@otel.HttpResponse::{
+    status_code: http_res.status().to_double().to_int(),
+    body: content,
+    error_code: None,
+  })
 }
 
 ///|
