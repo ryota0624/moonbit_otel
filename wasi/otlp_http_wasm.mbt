@@ -13,6 +13,13 @@ fn parseUrl(url : String) -> (@types.Scheme, String, String) {
     .replace(old="http://", new="")
     .split("/")
     .to_array()
+  let separator = "/"
+  let path = if exclude_schema.length() > 1 {
+    let joined = exclude_schema[1:].join(separator)
+    "/\{joined}"
+  } else {
+    "/"
+  }
   (
     if url.has_prefix("https://") {
       @types.Scheme::Https
@@ -20,7 +27,7 @@ fn parseUrl(url : String) -> (@types.Scheme, String, String) {
       @types.Scheme::Http
     },
     exclude_schema[0].to_string(),
-    exclude_schema[1:].join("/"),
+    path,
   )
 }
 
@@ -31,7 +38,6 @@ impl @otel.HttpClient for HttpClientOnWasiHttp with http_post_json(
   body : String,
   headers : Map[String, String],
 ) -> Result[@otel.HttpResponse, @otel.HttpError] {
-  let stdout = @stdout.get_stdout()
   let field = @types.Fields::fields()
   for header in headers {
     let key = header.0
@@ -45,15 +51,20 @@ impl @otel.HttpClient for HttpClientOnWasiHttp with http_post_json(
       )
     }
   }
-  let req = @types.OutgoingRequest::outgoing_request(field)
   let (schema, authority, path) = parseUrl(url)
-  let _ = req.set_scheme(schema |> Some(_))
-  let _ = req.set_authority(Some(authority.to_string()))
-  let _ = req.set_path_with_query(Some(path))
-  let _ = req.set_method(@types.Method::Post)
-  let _ = stdout.write(
-    @encoding/utf8.encode("Sending HTTP POST to \{url}\n").to_fixedarray(),
-  )
+  let req = @types.OutgoingRequest::outgoing_request(field)
+  guard req.set_scheme(schema |> Some(_)) is Ok(_) else {
+    return Err(@otel.HttpError::NetworkError("Failed to set scheme"))
+  }
+  guard req.set_authority(Some(authority.to_string())) is Ok(_) else {
+    return Err(@otel.HttpError::NetworkError("Failed to set authority"))
+  }
+  guard req.set_path_with_query(Some(path)) is Ok(_) else {
+    return Err(@otel.HttpError::NetworkError("Failed to set path: \{path}"))
+  }
+  guard req.set_method(@types.Method::Post) is Ok(_) else {
+    return Err(@otel.HttpError::NetworkError("Failed to set method"))
+  }
   guard req.body() is Ok(b) else {
     return Err(@otel.HttpError::NetworkError("Failed to create request body"))
   }
@@ -63,7 +74,6 @@ impl @otel.HttpClient for HttpClientOnWasiHttp with http_post_json(
       @otel.HttpError::NetworkError("Failed to get request body stream"),
     )
   }
-  defer write.drop()
   let body_bytes = @encoding/utf8.encode(body)
   guard write.write(body_bytes.to_fixedarray()) is Ok(_) else {
     return Err(@otel.HttpError::NetworkError("Failed to write request body"))
@@ -71,9 +81,7 @@ impl @otel.HttpClient for HttpClientOnWasiHttp with http_post_json(
   guard write.flush() is Ok(_) else {
     return Err(@otel.HttpError::NetworkError("Failed to flush request body"))
   }
-  let write_sub = write.subscribe()
-  write_sub.block()
-  defer write_sub.drop()
+  write.drop()
   guard b.finish(None) is Ok(_) else {
     return Err(@otel.HttpError::NetworkError("Failed to finish request body"))
   }
@@ -81,10 +89,11 @@ impl @otel.HttpClient for HttpClientOnWasiHttp with http_post_json(
   // Send the request using OutgoingHandler
   let result = @outgoingHandler.handle(req, None)
   guard result is Ok(response) else {
-    return Err(@otel.HttpError::NetworkError("Failed to send HTTP request"))
+    return Err(@otel.HttpError::NetworkError("Failed to send HTTP request \{result}"))
   }
   let response_sub = response.subscribe()
   response_sub.block()
+  response_sub.drop()
   let res = response.get()
   guard res is Some(http_response) else {
     return Err(
@@ -120,8 +129,9 @@ impl @otel.HttpClient for HttpClientOnWasiHttp with http_post_json(
       @otel.HttpError::InvalidResponse("No body data received".to_string()),
     )
   }
-  defer data.drop()
-  data.subscribe().block()
+  let data_sub = data.subscribe()
+  data_sub.block()
+  data_sub.drop()
   let response_content = read_all(data)
   guard response_content is Ok(content) else {
     return Err(
@@ -130,6 +140,7 @@ impl @otel.HttpClient for HttpClientOnWasiHttp with http_post_json(
       ),
     )
   }
+  data.drop()
   return Ok(@otel.HttpResponse::{
     status_code: http_res.status().to_double().to_int(),
     body: content,
@@ -169,4 +180,9 @@ fn read_all(stream : @streams.InputStream) -> Result[String, @otel.HttpError] {
       }
     }
   }
+}
+
+fn my_print(s: String) -> Unit {
+  let stdout = @stdout.get_stdout()
+  let _ = stdout.write(@encoding/utf8.encode(s).to_fixedarray())
 }
