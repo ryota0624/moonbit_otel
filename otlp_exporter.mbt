@@ -12,12 +12,14 @@ pub struct OTLPExporterConfig {
   headers : Map[String, String]
   timeout_ms : Int
   http_client_factory : &HttpClientFactory
+  logger_factory : () -> InternalLogger
 }
 
 ///|
 pub struct OTLPExporter {
   config : OTLPExporterConfig
   priv mut http_client : &HttpClient?
+  priv logger : InternalLogger
 }
 
 ///|
@@ -41,6 +43,7 @@ pub fn OTLPExporterConfig::default(
     headers: Map::new(),
     timeout_ms: 30000,
     http_client_factory,
+    logger_factory: () => InternalLogger::none(),
   }
 }
 
@@ -89,7 +92,7 @@ pub fn OTLPExporterConfig::with_http_client_factory(
 
 ///|
 pub fn OTLPExporter::new(config : OTLPExporterConfig) -> OTLPExporter {
-  { config, http_client: None }
+  { config, http_client: None, logger: InternalLogger::none() }
 }
 
 // Create an OTLP exporter with default configuration
@@ -133,17 +136,16 @@ pub async fn OTLPExporter::export_spans(
         // println("[OTLP] Exported " + spans.length().to_string() + " span(s)")
       } else {
         // HTTP error response
-        // println(
-        //   "[OTLP] Export failed with status " +
-        //   response.status_code.to_string() +
-        //   ": " +
-        //   response.body,
-        // )
+        self.logger.log(
+          "[OTLP] Export failed with status " +
+          response.status_code.to_string() +
+          ": " +
+          response.body,
+        )
       }
     Err(error) =>
       // Network or transport error
-      // println("[OTLP] Export error: " + error.to_string())
-      ()
+      self.logger.log("[OTLP] Export error: " + error.to_string())
   }
 }
 
@@ -151,7 +153,7 @@ pub async fn OTLPExporter::export_spans(
 
 ///|
 pub fn OTLPExporter::shutdown(_ : OTLPExporter) -> Unit {
- // println("[OTLP] OTLPExporter shutdown")
+  // println("[OTLP] OTLPExporter shutdown")
 }
 
 ///|

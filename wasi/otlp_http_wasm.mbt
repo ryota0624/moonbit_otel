@@ -53,11 +53,11 @@ impl @otel.HttpClient for HttpClientOnWasiHttp with http_post_json(
           @otel.HttpError::NetworkError("Failed to flush request body"),
         )
       }
-      guard b.finish(None) is Ok(_) else {
-        return Err(
-          @otel.HttpError::NetworkError("Failed to finish request body"),
-        )
-      }
+      // guard b.finish(None) is Ok(_) else {
+      //   return Err(
+      //     @otel.HttpError::NetworkError("Failed to finish request body"),
+      //   )
+      // }
       Ok(())
     }
     Err(_) =>
