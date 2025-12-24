@@ -1,7 +1,7 @@
 build:
-	moon build --target wasm ./gen
-	wasm-tools component embed wit target/wasm/release/build/gen/gen.wasm -o target/wasm/release/build/gen/gen.wasm --encoding utf16
-	wasm-tools component new target/wasm/release/build/gen/gen.wasm -o target/wasm/release/build/gen/gen.wasm
+	moon build --no-strip -g --target wasm ./gen
+	wasm-tools component embed wit target/wasm/debug/build/gen/gen.wasm -o target/wasm/debug/build/gen/gen.wasm --encoding utf16 -g
+	wasm-tools component new target/wasm/debug/build/gen/gen.wasm -o target/wasm/debug/build/gen/gen.wasm -g
 
 run: build
-	wasmtime -S http -S cli ./target/wasm/release/build/gen/gen.wasm
+	wasmtime -S http -S cli target/wasm/debug/build/gen/gen.wasm
