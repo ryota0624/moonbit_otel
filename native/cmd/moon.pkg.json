@@ -6,7 +6,7 @@
       "alias": "cmd_main"
     },
     {
-      "path": "ryota0624/moonbit_otel_native",
+      "path": "ryota0624/moonbit_otel/native",
       "alias": "lib"
     },
     {
