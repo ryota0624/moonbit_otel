@@ -1,7 +1,8 @@
 ///|
-pub async fn run_example(otlp_config : @lib.OTLPExporterConfig) -> Unit {
-  let logger = (otlp_config.logger_factory)()
-  logger.log("Starting OpenTelemetry example...")
+pub async fn run_example(
+  otlp_config : @lib.OTLPExporterConfig,
+  print~ : (String) -> Unit,
+) -> Unit {
   // Resourceの作成
   let resource = @lib.Resource::empty()
     .with_string(@lib.service_name, "demo-service")
@@ -50,22 +51,19 @@ pub async fn run_example(otlp_config : @lib.OTLPExporterConfig) -> Unit {
   let parent_span = parent_span.set_status(@lib.SpanStatus::Ok).end(1005000L)
 
   // ConsoleExporterの作成
-  let console_exporter = @lib.ConsoleExporter::with_print_fn(fn(msg : String) {
-    logger.log("[ConsoleExporter] " + msg)
-  })
+  let console_exporter = @lib.PrettyPrintExporter::new(print)
 
-  // // Spanをコンソールにエクスポート
-  // console_exporter.export_spans([child_span, parent_span])
+  // Spanをコンソールにエクスポート
+  console_exporter.export_spans([child_span, parent_span])
 
-  // // ConsoleExporterをシャットダウン
-  // console_exporter.shutdown()
+  // ConsoleExporterをシャットダウン
+  console_exporter.shutdown()
 
   // OTLPExporterの作成
-  let otlp_exporter: &@lib.SpanExporter = @lib.OTLPExporter::new(otlp_config)
-  logger.log("Created OTLPExporter with endpoint: " + otlp_config.endpoint)
+  let otlp_exporter : &@lib.SpanExporter = @lib.OTLPExporter::new(otlp_config)
   // Spanを OTLP Collectorにエクスポート
   otlp_exporter.export_spans([child_span])
-  logger.log("Exported spans to OTLP Collector.")
+
   // OTLPExporterをシャットダウン
   otlp_exporter.shutdown()
 }

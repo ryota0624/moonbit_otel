@@ -21,55 +21,6 @@ test "SpanKind serializes via ToJson" {
   assert_true(json.contains("Server"))
 }
 
-// Test OTLP exporter configuration
-
-///|
-test "OTLPExporterConfig::default returns default config" {
-  let config = OTLPExporterConfig::default(http_client_factory())
-  assert_eq(config.endpoint, "http://localhost:4318/v1/traces")
-  assert_eq(config.timeout_ms, 30000)
-}
-
-///|
-test "OTLPExporterConfig::with_endpoint sets custom endpoint" {
-  let config = OTLPExporterConfig::default(http_client_factory()).with_endpoint(
-    "http://custom:4318/v1/traces",
-  )
-  assert_eq(config.endpoint, "http://custom:4318/v1/traces")
-}
-
-///|
-test "OTLPExporterConfig::with_timeout sets custom timeout" {
-  let config = OTLPExporterConfig::default(http_client_factory()).with_timeout(60000)
-  assert_eq(config.timeout_ms, 60000)
-}
-
-///|
-test "OTLPExporterConfig::with_header adds custom header" {
-  let config = OTLPExporterConfig::default(http_client_factory()).with_header(
-    "Authorization", "Bearer token",
-  )
-  match config.headers.get("Authorization") {
-    Some(value) => assert_eq(value, "Bearer token")
-    None => assert_false(true)
-  }
-}
-
-// Test OTLP exporter creation
-
-///|
-test "OTLPExporter::new creates exporter with config" {
-  let config = OTLPExporterConfig::default(http_client_factory())
-  let exporter = OTLPExporter::new(config)
-  assert_eq(exporter.config.endpoint, "http://localhost:4318/v1/traces")
-}
-
-///|
-test "OTLPExporter::with_default_config creates exporter with defaults" {
-  let exporter = OTLPExporter::with_default_config(http_client_factory())
-  assert_eq(exporter.config.endpoint, "http://localhost:4318/v1/traces")
-}
-
 // Helper function to create a test span
 
 ///|
@@ -181,6 +132,7 @@ test "spans_to_resource_spans_json handles multiple spans" {
   assert_true(json.contains("\"spans\""))
 }
 
+///|
 fn http_client_factory() -> &HttpClientFactory {
   DummyHttpClientFactory::{  }
 }

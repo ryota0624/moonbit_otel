@@ -12,61 +12,45 @@ pub trait SpanExporter {
 // ConsoleExporter: Spanを指定された出力関数で出力
 
 ///|
-pub struct ConsoleExporter {
-  prefix : String // 出力時のプレフィックス
+pub struct PrettyPrintExporter {
   print_fn : (String) -> Unit // カスタム出力関数
 }
 
 ///|
-pub impl SpanExporter for ConsoleExporter with export_spans(
-  self : ConsoleExporter,
+pub impl SpanExporter for PrettyPrintExporter with export_spans(
+  self : PrettyPrintExporter,
   spans : Array[Span],
 ) -> Unit {
   self.export_spans(spans)
 }
 
 ///|
-pub impl SpanExporter for ConsoleExporter with shutdown(self : ConsoleExporter) -> Unit {
+pub impl SpanExporter for PrettyPrintExporter with shutdown(self : PrettyPrintExporter) -> Unit {
   self.shutdown()
 }
 
 // ConsoleExporterの作成
 
 ///|
-pub fn ConsoleExporter::new() -> ConsoleExporter {
-  { prefix: "[OpenTelemetry]", print_fn: (str) => () }
-}
-
-///|
-pub fn ConsoleExporter::with_print_fn(
-  print_fn : (String) -> Unit,
-) -> ConsoleExporter {
-  { prefix: "[OpenTelemetry]", print_fn }
-}
-
-///|
-pub fn ConsoleExporter::with_prefix_and_print_fn(
-  prefix : String,
-  print_fn : (String) -> Unit,
-) -> ConsoleExporter {
-  { prefix, print_fn }
+pub fn PrettyPrintExporter::new(print : (String) -> Unit) -> PrettyPrintExporter {
+  { print_fn: print }
 }
 
 // ConsoleExporterにSpanExporter traitを実装
 
 ///|
-pub fn ConsoleExporter::export_spans(
-  self : ConsoleExporter,
+pub fn PrettyPrintExporter::export_spans(
+  self : PrettyPrintExporter,
   spans : Array[Span],
 ) -> Unit {
   for span in spans {
-    (self.print_fn)(self.prefix + " " + format_span(span))
+    (self.print_fn)(format_span(span))
   }
 }
 
 ///|
-pub fn ConsoleExporter::shutdown(self : ConsoleExporter) -> Unit {
-  (self.print_fn)(self.prefix + " ConsoleExporter shutdown")
+pub fn PrettyPrintExporter::shutdown(self : PrettyPrintExporter) -> Unit {
+  (self.print_fn)("ConsoleExporter shutdown")
 }
 
 // Spanを人間が読みやすい形式にフォーマット
@@ -86,7 +70,10 @@ fn format_span(span : Span) -> String {
   }
   output = output + "  Kind: " + span.kind.to_string() + "\n"
   output = output + "  Status: " + span.status.to_string() + "\n"
-  output = output + "  StartTime: " + span.startTimeUnixNano.to_string() + "ns\n"
+  output = output +
+    "  StartTime: " +
+    span.startTimeUnixNano.to_string() +
+    "ns\n"
 
   // 期間の表示
   match span.duration() {

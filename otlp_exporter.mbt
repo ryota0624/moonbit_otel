@@ -7,19 +7,48 @@ pub(open) trait HttpClientFactory {
 }
 
 ///|
-pub struct OTLPExporterConfig {
+pub(all) struct HttpSendAdaptor {
+  client_factory : &HttpClientFactory
   endpoint : String
   headers : Map[String, String]
-  timeout_ms : Int
-  http_client_factory : &HttpClientFactory
+}
+
+///|
+pub fn HttpSendAdaptor::new(
+  client_factory : &HttpClientFactory,
+  endpoint? : String = "http://localhost:4318/v1/traces",
+  headers? : Map[String, String] = {},
+) -> HttpSendAdaptor {
+  { client_factory, endpoint, headers }
+}
+
+///|
+pub(all) struct StdoutSendAdaptor {
+  print : (String) -> Unit
+}
+
+///|
+pub fn StdoutSendAdaptor::new(print : (String) -> Unit) -> StdoutSendAdaptor {
+  StdoutSendAdaptor::{ print, }
+}
+
+///|
+pub(all) enum ExportAdapter {
+  Http(HttpSendAdaptor)
+  Stdout(StdoutSendAdaptor)
+}
+
+///|
+pub struct OTLPExporterConfig {
   logger_factory : () -> InternalLogger
+  export_adapter : ExportAdapter
 }
 
 ///|
 pub struct OTLPExporter {
   config : OTLPExporterConfig
-  priv mut http_client : &HttpClient?
   priv logger : InternalLogger
+  priv export_adapter : ExportAdapter
 }
 
 ///|
@@ -36,80 +65,30 @@ pub(open) trait HttpClient {
 
 ///|
 pub fn OTLPExporterConfig::default(
-  http_client_factory : &HttpClientFactory,
+  export_adapter : ExportAdapter,
 ) -> OTLPExporterConfig {
-  {
-    endpoint: "http://localhost:4318/v1/traces",
-    headers: Map::new(),
-    timeout_ms: 30000,
-    http_client_factory,
-    logger_factory: () => InternalLogger::none(),
-  }
+  { logger_factory: () => InternalLogger::none(), export_adapter }
 }
-
-// Add a custom header to the configuration
-
-///|
-pub fn OTLPExporterConfig::with_header(
-  self : OTLPExporterConfig,
-  key : String,
-  value : String,
-) -> OTLPExporterConfig {
-  let new_headers = self.headers.copy()
-  new_headers.set(key, value)
-  { ..self, endpoint: self.endpoint }
-}
-
 // Set the endpoint URL
-
-///|
-pub fn OTLPExporterConfig::with_endpoint(
-  self : OTLPExporterConfig,
-  endpoint : String,
-) -> OTLPExporterConfig {
-  { ..self, endpoint, }
-}
-
 // Set the timeout in milliseconds
 
 ///|
-pub fn OTLPExporterConfig::with_timeout(
+pub fn OTLPExporterConfig::enable_debug_log(
   self : OTLPExporterConfig,
-  timeout_ms : Int,
+  print~ : (&Show) -> Unit,
 ) -> OTLPExporterConfig {
-  { ..self, timeout_ms, }
-}
-
-///|
-pub fn OTLPExporterConfig::with_logger_factory(
-  self : OTLPExporterConfig,
-  logger_factory : () -> InternalLogger,
-) -> OTLPExporterConfig {
-  { ..self, logger_factory, }
-}
-
-///|
-pub fn OTLPExporterConfig::with_http_client_factory(
-  self : OTLPExporterConfig,
-  factory : &HttpClientFactory,
-) -> OTLPExporterConfig {
-  { ..self, http_client_factory: factory }
+  { ..self, logger_factory: () => InternalLogger::{ print_fn: print } }
 }
 
 // Create a new OTLP exporter with the given configuration
 
 ///|
 pub fn OTLPExporter::new(config : OTLPExporterConfig) -> OTLPExporter {
-  { config, http_client: None, logger: (config.logger_factory)() }
-}
-
-// Create an OTLP exporter with default configuration
-
-///|
-pub fn OTLPExporter::with_default_config(
-  http_client_factory : &HttpClientFactory,
-) -> OTLPExporter {
-  OTLPExporter::new(OTLPExporterConfig::default(http_client_factory))
+  {
+    config,
+    logger: (config.logger_factory)(),
+    export_adapter: config.export_adapter,
+  }
 }
 
 // Explicit implementation of SpanExporter trait for OTLPExporter
@@ -119,49 +98,58 @@ pub async fn OTLPExporter::export_spans(
   self : OTLPExporter,
   spans : Array[Span],
 ) -> Unit {
-  self.logger.log(
-    "[OTLP] Exporting " +
-    spans.length().to_string() +
-    " span(s) to " +
-    self.config.endpoint,
-  )
   if spans.length() == 0 {
     return
   }
 
   // Convert spans to OTLP JSON format
   let json_body = spans_to_resource_spans_json(spans)
-
-  // Prepare HTTP headers
-  let headers = self.config.headers.copy()
-  headers.set("Content-Type", "application/json")
-  if self.http_client is None {
-    self.http_client = Some(self.config.http_client_factory.create_client())
+  let adaptor = self.export_adapter
+  match adaptor {
+    ExportAdapter::Http(http_adaptor) => {
+      let client = http_adaptor.client_factory.create_client()
+      self.export_spans_by_http_client(json_body, client, http_adaptor, spans)
+    }
+    ExportAdapter::Stdout(stdout_adaptor) => (stdout_adaptor.print)(json_body)
   }
+}
 
-  // Send HTTP POST request
-  match
-    self.config.http_client_factory
-    .create_client()
-    .http_post_json(self.config.endpoint, json_body, headers) {
-    Ok(response) =>
-      if response.status_code >= 200 && response.status_code < 300 {
-        // Success - span exported successfully
-        self.logger.log(
-          "[OTLP] Exported " + spans.length().to_string() + " span(s)",
-        )
-      } else {
-        // HTTP error response
-        self.logger.log(
-          "[OTLP] Export failed with status " +
-          response.status_code.to_string() +
-          ": " +
-          response.body,
-        )
-      }
-    Err(error) =>
-      // Network or transport error
-      self.logger.log("[OTLP] Export error: " + error.to_string())
+///|
+pub async fn OTLPExporter::export_spans_by_http_client(
+  self : OTLPExporter,
+  json_body : String,
+  http_client : &HttpClient,
+  http_adaptor : HttpSendAdaptor,
+  spans : Array[Span],
+) -> Unit {
+  try {
+    let result = http_client.http_post_json(
+      http_adaptor.endpoint,
+      json_body,
+      http_adaptor.headers.merge({ "Content-Type": "application/json" }),
+    )
+    match result {
+      Ok(response) =>
+        if response.status_code >= 200 && response.status_code < 300 {
+          // Success - span exported successfully
+          self.logger.log(
+            "[OTLP] Exported " + spans.length().to_string() + " span(s)",
+          )
+        } else {
+          // HTTP error response
+          self.logger.log(
+            "[OTLP] Export failed with status " +
+            response.status_code.to_string() +
+            ": " +
+            response.body,
+          )
+        }
+      Err(error) =>
+        // Network or transport error
+        self.logger.log("[OTLP] Export error: " + error.to_string())
+    }
+  } catch {
+    err => self.logger.log("[OTLP] HTTP export error: " + err.to_string())
   }
 }
 
