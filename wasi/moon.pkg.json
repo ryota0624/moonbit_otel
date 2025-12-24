@@ -6,6 +6,11 @@
       "alias": "otel"
     },
     "ryota0624/moonbit-otel-wasi/interface/wasi/http/outgoingHandler",
-    "ryota0624/moonbit-otel-wasi/interface/wasi/http/types"
+    "ryota0624/moonbit-otel-wasi/interface/wasi/io/streams",
+    "ryota0624/moonbit-otel-wasi/interface/wasi/http/types",
+    {
+      "path": "ryota0624/moonbit-otel-wasi/interface/wasi/cli/stdout",
+      "alias": "stdout"
+    }
   ]
 }
