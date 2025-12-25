@@ -1,9 +1,7 @@
 {
   "is-main": false,
   "targets": {
-    "otlp_http_native.mbt": [
-      "native"
-    ]
+    "otlp_http_native.mbt": ["native"]
   },
   "import": [
     "moonbitlang/async/http",

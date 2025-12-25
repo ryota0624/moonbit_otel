@@ -1,0 +1,16 @@
+{
+  "name": "ryota0624/moonbit_otel_native",
+  "version": "0.1.0",
+  "readme": "",
+  "repository": "",
+  "license": "Apache-2.0",
+  "keywords": [],
+  "description": "Native backend implementation for moonbit_otel",
+  "deps": {
+    "moonbitlang/async": "0.14.3",
+    "ryota0624/moonbit_otel": {
+      "version": "0.1.0",
+      "path": "../"
+    }
+  }
+}

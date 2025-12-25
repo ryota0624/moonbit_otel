@@ -131,32 +131,3 @@ test "spans_to_resource_spans_json handles multiple spans" {
   // Should contain array with multiple spans
   assert_true(json.contains("\"spans\""))
 }
-
-///|
-fn http_client_factory() -> &HttpClientFactory {
-  DummyHttpClientFactory::{  }
-}
-
-///|
-priv struct DummyHttpClientFactory {}
-
-///|
-impl HttpClientFactory for DummyHttpClientFactory with create_client(
-  _ : DummyHttpClientFactory,
-) -> &HttpClient {
-  DummyHttpClient::{  }
-}
-
-///|
-struct DummyHttpClient {}
-
-///|
-impl HttpClient for DummyHttpClient with http_post_json(
-  _ : DummyHttpClient,
-  _ : String,
-  _ : String,
-  _ : Map[String, String],
-) -> Result[HttpResponse, HttpError] {
-  // Simulate successful HTTP response
-  Ok(HttpResponse::{ status_code: 200, body: "OK", error_code: None })
-}
