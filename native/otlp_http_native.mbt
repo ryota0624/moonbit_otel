@@ -2,7 +2,7 @@
 priv struct HttpClientOnAsyncHttp {}
 
 ///|
-pub fn http_client_factory() -> &@lib.HttpClientFactory {
+pub fn http_client_provider() -> &@lib.HttpClientProvider {
   HttpClientOnAsyncHttp::{  }
 }
 
@@ -17,7 +17,11 @@ impl @lib.HttpClient for HttpClientOnAsyncHttp with http_post_json(
     try {
       let (response, data) = @http.post(url, body, headers~)
       if response.code >= 200 && response.code < 300 {
-        Ok(@lib.HttpResponse::{ status_code: response.code, body: data.text(), error_code: None })
+        Ok(@lib.HttpResponse::{
+          status_code: response.code,
+          body: data.text(),
+          error_code: None,
+        })
       } else {
         Err(@lib.HttpError::http_status(response.code, data.text()))
       }
@@ -28,7 +32,7 @@ impl @lib.HttpClient for HttpClientOnAsyncHttp with http_post_json(
 }
 
 ///|
-impl @lib.HttpClientFactory for HttpClientOnAsyncHttp with create_client(
+impl @lib.HttpClientProvider for HttpClientOnAsyncHttp with create_client(
   _ : HttpClientOnAsyncHttp,
 ) -> &@lib.HttpClient {
   HttpClientOnAsyncHttp::{  }

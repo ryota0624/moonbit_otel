@@ -1,4 +1,3 @@
-
 ///|
 /// `suspend` will suspend the execution of the current coroutine.
 /// The suspension will be handled by a callback passed to `suspend`
@@ -24,7 +23,7 @@ async fn[T, E : Error] suspend(
 priv struct HttpClientOnFetchApi {}
 
 ///|
-pub fn http_client_factory() -> &@lib.HttpClientFactory {
+pub fn http_client_provider() -> &@lib.HttpClientProvider {
   HttpClientOnFetchApi::{  }
 }
 
@@ -52,11 +51,14 @@ async fn http_post_internal(
       return Err(@lib.HttpError::network(response.body))
     } else if response.status_code >= 400 {
       // HTTP error responses
-      return Err(@lib.HttpError::http_status(response.status_code, response.body))
+      return Err(
+        @lib.HttpError::http_status(response.status_code, response.body),
+      )
     }
     Ok(response)
   } catch {
-    _err => Err(@lib.HttpError::invalid_response("Failed to parse HTTP response"))
+    _err =>
+      Err(@lib.HttpError::invalid_response("Failed to parse HTTP response"))
   }
 }
 
@@ -67,16 +69,11 @@ impl @lib.HttpClient for HttpClientOnFetchApi with http_post_json(
   body : String,
   headers : Map[String, String],
 ) -> Result[@lib.HttpResponse, @lib.HttpError] {
-  http_post_internal({
-    url,
-    http_method: "POST",
-    headers: headers,
-    body,
-  })
+  http_post_internal({ url, http_method: "POST", headers, body })
 }
 
 ///|
-impl @lib.HttpClientFactory for HttpClientOnFetchApi with create_client(
+impl @lib.HttpClientProvider for HttpClientOnFetchApi with create_client(
   _ : HttpClientOnFetchApi,
 ) -> &@lib.HttpClient {
   HttpClientOnFetchApi::{  }

@@ -2,24 +2,24 @@
 // Sends spans to an OpenTelemetry Collector via HTTP+JSON
 
 ///|
-pub(open) trait HttpClientFactory {
+pub(open) trait HttpClientProvider {
   async create_client(Self) -> &HttpClient
 }
 
 ///|
 pub(all) struct HttpSendAdaptor {
-  client_factory : &HttpClientFactory
+  client_provider : &HttpClientProvider
   endpoint : String
   headers : Map[String, String]
 }
 
 ///|
 pub fn HttpSendAdaptor::new(
-  client_factory : &HttpClientFactory,
+  client_provider : &HttpClientProvider,
   endpoint? : String = "http://localhost:4318/v1/traces",
   headers? : Map[String, String] = {},
 ) -> HttpSendAdaptor {
-  { client_factory, endpoint, headers }
+  { client_provider, endpoint, headers }
 }
 
 ///|
@@ -81,13 +81,13 @@ pub fn OTLPExporterConfig::stdout(
 
 ///|
 pub fn OTLPExporterConfig::http(
-  client_factory : &HttpClientFactory,
+  client_provider : &HttpClientProvider,
   endpoint? : String = "http://localhost:4318/v1/traces",
   headers? : Map[String, String] = {},
 ) -> OTLPExporterConfig {
   OTLPExporterConfig::default(
     ExportAdapter::Http(
-      HttpSendAdaptor::new(client_factory, endpoint~, headers~),
+      HttpSendAdaptor::new(client_provider, endpoint~, headers~),
     ),
   )
 }
@@ -130,7 +130,7 @@ pub async fn OTLPExporter::export_spans(
   let adaptor = self.export_adapter
   match adaptor {
     ExportAdapter::Http(http_adaptor) => {
-      let client = http_adaptor.client_factory.create_client()
+      let client = http_adaptor.client_provider.create_client()
       self.export_spans_by_http_client(json_body, client, http_adaptor, spans)
     }
     ExportAdapter::Stdout(stdout_adaptor) => (stdout_adaptor.print)(json_body)

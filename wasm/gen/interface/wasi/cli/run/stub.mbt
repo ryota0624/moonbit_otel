@@ -24,7 +24,7 @@ pub fn run() -> Result[Unit, Unit] {
     )
     @cmd_main.run_example(
       @otel.OTLPExporterConfig::http(
-        @lib.http_client_factory(),
+        @lib.http_client_provider(),
         endpoint="http://192.168.0.9:4318/v1/traces",
       ).enable_debug_log(print=stdout_println),
       print=stdout_string_println,

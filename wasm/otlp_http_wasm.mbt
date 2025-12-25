@@ -2,7 +2,7 @@
 priv struct HttpClientOnWasiHttp {}
 
 ///|
-pub fn http_client_factory() -> &@otel.HttpClientFactory {
+pub fn http_client_provider() -> &@otel.HttpClientProvider {
   HttpClientOnWasiHttp::{  }
 }
 
@@ -70,9 +70,7 @@ impl @otel.HttpClient for HttpClientOnWasiHttp with http_post_json(
   }
   let stream = b.write()
   guard stream is Ok(write) else {
-    return Err(
-      @otel.HttpError::request("Failed to get request body stream"),
-    )
+    return Err(@otel.HttpError::request("Failed to get request body stream"))
   }
   let body_bytes = @encoding/utf8.encode(body)
   guard write.write(body_bytes.to_fixedarray()) is Ok(_) else {
@@ -89,45 +87,33 @@ impl @otel.HttpClient for HttpClientOnWasiHttp with http_post_json(
   // Send the request using OutgoingHandler
   let result = @outgoingHandler.handle(req, None)
   guard result is Ok(response) else {
-    return Err(@otel.HttpError::network("Failed to send HTTP request \{result}"))
+    return Err(
+      @otel.HttpError::network("Failed to send HTTP request \{result}"),
+    )
   }
   let response_sub = response.subscribe()
   response_sub.block()
   response_sub.drop()
   let res = response.get()
   guard res is Some(http_response) else {
-    return Err(
-      @otel.HttpError::timeout("No response received"),
-    )
+    return Err(@otel.HttpError::timeout("No response received"))
   }
   guard http_response is Ok(http_response) else {
-    return Err(
-      @otel.HttpError::invalid_response(
-        "Failed to get HTTP response",
-      ),
-    )
+    return Err(@otel.HttpError::invalid_response("Failed to get HTTP response"))
   }
   guard http_response is Ok(http_res) else {
-    return Err(
-      @otel.HttpError::invalid_response(
-        "Failed to get HTTP response",
-      ),
-    )
+    return Err(@otel.HttpError::invalid_response("Failed to get HTTP response"))
   }
   defer http_res.drop()
   guard http_res.consume() is Ok(body) else {
     return Err(
-      @otel.HttpError::invalid_response(
-        "Failed to consume HTTP response",
-      ),
+      @otel.HttpError::invalid_response("Failed to consume HTTP response"),
     )
   }
   defer body.drop()
   let body_stream = body.stream()
   guard body_stream is Ok(data) else {
-    return Err(
-      @otel.HttpError::invalid_response("No body data received"),
-    )
+    return Err(@otel.HttpError::invalid_response("No body data received"))
   }
   let data_sub = data.subscribe()
   data_sub.block()
@@ -135,9 +121,7 @@ impl @otel.HttpClient for HttpClientOnWasiHttp with http_post_json(
   let response_content = read_all(data)
   guard response_content is Ok(content) else {
     return Err(
-      @otel.HttpError::invalid_response(
-        "Failed to read response content",
-      ),
+      @otel.HttpError::invalid_response("Failed to read response content"),
     )
   }
   data.drop()
@@ -149,7 +133,7 @@ impl @otel.HttpClient for HttpClientOnWasiHttp with http_post_json(
 }
 
 ///|
-impl @otel.HttpClientFactory for HttpClientOnWasiHttp with create_client(
+impl @otel.HttpClientProvider for HttpClientOnWasiHttp with create_client(
   _ : HttpClientOnWasiHttp,
 ) -> &@otel.HttpClient {
   HttpClientOnWasiHttp::{  }
@@ -161,9 +145,7 @@ fn read_all(stream : @streams.InputStream) -> Result[String, @otel.HttpError] {
   let out = stream.read(1024)
   for {
     guard out is Ok(data) else {
-      return @otel.HttpError::invalid_response(
-          "Failed to read response body",
-        )
+      return @otel.HttpError::invalid_response("Failed to read response body")
         |> Err(_)
     }
     bytes = bytes.add(Bytes::from_iter(data.iter()))
@@ -173,9 +155,7 @@ fn read_all(stream : @streams.InputStream) -> Result[String, @otel.HttpError] {
         Ok(s) => return Ok(s)
         Err(_) =>
           return Err(
-            @otel.HttpError::invalid_response(
-              "Failed to decode response body",
-            ),
+            @otel.HttpError::invalid_response("Failed to decode response body"),
           )
       }
     }
