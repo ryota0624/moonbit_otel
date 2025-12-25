@@ -1,3 +1,6 @@
+/// TODO: spanを送信する際の形式はprotobufから生成したstructを使うった方が良いので
+/// ライブラリとしてのI/Fを整理したSpanと送信フォーマットしてのSpanを分けたい
+
 // TraceID represents a unique 128-bit trace identifier
 
 ///|
