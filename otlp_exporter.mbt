@@ -159,7 +159,7 @@ pub async fn OTLPExporter::export_spans_by_http_client(
             "[OTLP] Exported " + spans.length().to_string() + " span(s)",
           )
         } else {
-          // HTTP error response
+          // HTTP error response - already handled by HttpStatusError
           self.logger.log(
             "[OTLP] Export failed with status " +
             response.status_code.to_string() +
@@ -167,9 +167,24 @@ pub async fn OTLPExporter::export_spans_by_http_client(
             response.body,
           )
         }
-      Err(error) =>
-        // Network or transport error
-        self.logger.log("[OTLP] Export error: " + error.to_string())
+      Err(error) => {
+        // Classify and log error
+        let error_type = match error {
+          NetworkError(_) => "Network"
+          RequestError(_) => "Request"
+          HttpStatusError(_, _) => "HTTP Status"
+          InvalidResponse(_) => "Invalid Response"
+          TimeoutError(_) => "Timeout"
+          SecurityError(_) => "Security"
+        }
+        self.logger.log(
+          "[OTLP] " +
+          error_type +
+          " error: " +
+          error.to_string() +
+          (if error.is_retryable() { " (retryable)" } else { "" }),
+        )
+      }
     }
   } catch {
     err => self.logger.log("[OTLP] HTTP export error: " + err.to_string())

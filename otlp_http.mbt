@@ -17,10 +17,60 @@ pub(all) struct HttpResponse {
 
 ///|
 pub(all) enum HttpError {
+  // Network-level errors (DNS, connection, etc.)
   NetworkError(String)
-  // TimeoutError
+  // HTTP request construction errors (invalid URL, headers, etc.)
+  RequestError(String)
+  // HTTP response errors with status code
+  HttpStatusError(Int, String) // (status_code, body)
+  // Response parsing/reading errors
   InvalidResponse(String)
+  // Timeout errors
+  TimeoutError(String)
+  // SSL/TLS errors
+  SecurityError(String)
 } derive(Show)
+
+///|
+// Helper functions for error classification
+pub fn HttpError::network(message : String) -> HttpError {
+  NetworkError(message)
+}
+
+///|
+pub fn HttpError::request(message : String) -> HttpError {
+  RequestError(message)
+}
+
+///|
+pub fn HttpError::http_status(status_code : Int, body : String) -> HttpError {
+  HttpStatusError(status_code, body)
+}
+
+///|
+pub fn HttpError::invalid_response(message : String) -> HttpError {
+  InvalidResponse(message)
+}
+
+///|
+pub fn HttpError::timeout(message : String) -> HttpError {
+  TimeoutError(message)
+}
+
+///|
+pub fn HttpError::security(message : String) -> HttpError {
+  SecurityError(message)
+}
+
+///|
+// Check if the error is retryable
+pub fn HttpError::is_retryable(self : HttpError) -> Bool {
+  match self {
+    NetworkError(_) | TimeoutError(_) => true
+    HttpStatusError(status, _) => status >= 500 // Server errors are retryable
+    _ => false
+  }
+}
 
 // Helper to build request headers
 

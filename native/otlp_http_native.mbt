@@ -19,10 +19,10 @@ impl @lib.HttpClient for HttpClientOnAsyncHttp with http_post_json(
       if response.code >= 200 && response.code < 300 {
         Ok(@lib.HttpResponse::{ status_code: response.code, body: data.text(), error_code: None })
       } else {
-        Err(@lib.HttpError::InvalidResponse(data.text()))
+        Err(@lib.HttpError::http_status(response.code, data.text()))
       }
     } catch {
-      err => Err(@lib.HttpError::NetworkError(err.to_string()))
+      err => Err(@lib.HttpError::network(err.to_string()))
     }
   }) // 5 seconds timeout
 }

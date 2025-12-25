@@ -48,12 +48,15 @@ async fn http_post_internal(
     let json = @json.parse(response_json_str)
     let response : @lib.HttpResponse = @json.from_json(json)
     if response.status_code == 0 {
-      /// TODO: Differentiate timeout vs network errors
-      return Err(@lib.HttpError::NetworkError(response.body))
+      // status_code 0 indicates a network or timeout error
+      return Err(@lib.HttpError::network(response.body))
+    } else if response.status_code >= 400 {
+      // HTTP error responses
+      return Err(@lib.HttpError::http_status(response.status_code, response.body))
     }
     Ok(response)
   } catch {
-    _err => Err(@lib.HttpError::InvalidResponse("Failed to parse HTTP response"))
+    _err => Err(@lib.HttpError::invalid_response("Failed to parse HTTP response"))
   }
 }
 
