@@ -5,8 +5,5 @@
   "repository": "",
   "license": "Apache-2.0",
   "keywords": [],
-  "description": "",
-  "deps": {
-    "moonbitlang/async": "0.14.3"
-  }
+  "description": ""
 }
