@@ -1,0 +1,9 @@
+{
+  "import": [
+    {
+      "path": "ryota0624/moonbit_otel_wasm/interface/wasi/http/types",
+      "alias": "types"
+    }
+  ],
+  "warn-list": "-44"
+}
