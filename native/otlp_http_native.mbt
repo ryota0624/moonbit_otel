@@ -32,7 +32,7 @@ impl @lib.HttpClient for HttpClientOnAsyncHttp with http_post_json(
 }
 
 ///|
-impl @lib.HttpClientProvider for HttpClientOnAsyncHttp with create_client(
+impl @lib.HttpClientProvider for HttpClientOnAsyncHttp with get_client(
   _ : HttpClientOnAsyncHttp,
 ) -> &@lib.HttpClient {
   HttpClientOnAsyncHttp::{  }

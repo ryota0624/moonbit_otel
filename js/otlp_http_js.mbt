@@ -73,7 +73,7 @@ impl @lib.HttpClient for HttpClientOnFetchApi with http_post_json(
 }
 
 ///|
-impl @lib.HttpClientProvider for HttpClientOnFetchApi with create_client(
+impl @lib.HttpClientProvider for HttpClientOnFetchApi with get_client(
   _ : HttpClientOnFetchApi,
 ) -> &@lib.HttpClient {
   HttpClientOnFetchApi::{  }

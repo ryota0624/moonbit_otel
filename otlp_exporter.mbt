@@ -3,7 +3,7 @@
 
 ///|
 pub(open) trait HttpClientProvider {
-  async create_client(Self) -> &HttpClient
+  get_client(Self) -> &HttpClient
 }
 
 ///|
@@ -130,7 +130,7 @@ pub async fn OTLPExporter::export_spans(
   let adaptor = self.export_adapter
   match adaptor {
     ExportAdapter::Http(http_adaptor) => {
-      let client = http_adaptor.client_provider.create_client()
+      let client = http_adaptor.client_provider.get_client()
       self.export_spans_by_http_client(json_body, client, http_adaptor, spans)
     }
     ExportAdapter::Stdout(stdout_adaptor) => (stdout_adaptor.print)(json_body)

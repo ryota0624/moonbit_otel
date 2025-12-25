@@ -8,6 +8,7 @@ pub fn http_client_provider() -> &@otel.HttpClientProvider {
 
 ///|
 fn parseUrl(url : String) -> (@types.Scheme, String, String) {
+  println(url)
   let exclude_schema = url
     .replace(old="https://", new="")
     .replace(old="http://", new="")
@@ -133,7 +134,7 @@ impl @otel.HttpClient for HttpClientOnWasiHttp with http_post_json(
 }
 
 ///|
-impl @otel.HttpClientProvider for HttpClientOnWasiHttp with create_client(
+impl @otel.HttpClientProvider for HttpClientOnWasiHttp with get_client(
   _ : HttpClientOnWasiHttp,
 ) -> &@otel.HttpClient {
   HttpClientOnWasiHttp::{  }
