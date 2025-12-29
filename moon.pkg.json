@@ -10,7 +10,16 @@
       "path": "ryota0624/opentelemetry_proto_mbt/opentelemetry/proto/trace/v1",
       "alias": "trace"
     },
-    "moonbitlang/async"
+    {
+      "path": "ryota0624/opentelemetry_proto_mbt/opentelemetry/proto/resource/v1",
+      "alias": "resource"
+    },
+    {
+      "path": "ryota0624/opentelemetry_proto_mbt/opentelemetry/proto/common/v1",
+      "alias": "otel_common"
+    },
+    "moonbitlang/async",
+    "moonbitlang/protobuf"
   ],
   "deps": ["moonbitlang/core/random"]
 }

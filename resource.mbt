@@ -2,18 +2,47 @@
 
 ///|
 pub(all) enum AttributeValue {
+  // TODO: support more types
   String(String)
   Int(Int)
   Bool(Bool)
   Double(Double)
 } derive(Eq, Show)
 
+///|
 impl ToJson for AttributeValue with to_json(self : AttributeValue) -> Json {
   match self {
-    AttributeValue::String(s) => Json::object({ "stringValue": Json::string(s) })
-    AttributeValue::Int(i) =>  Json::object({ "intValue": Json::number(i.to_double()) })
+    AttributeValue::String(s) =>
+      Json::object({ "stringValue": Json::string(s) })
+    AttributeValue::Int(i) =>
+      Json::object({ "intValue": Json::number(i.to_double()) })
     AttributeValue::Bool(b) => Json::object({ "boolValue": Json::boolean(b) })
-    AttributeValue::Double(d) => Json::object({ "doubleValue": Json::number(d) })
+    AttributeValue::Double(d) =>
+      Json::object({ "doubleValue": Json::number(d) })
+  }
+}
+
+///|
+pub fn AttributeValue::to_protobuf(
+  self : AttributeValue,
+) -> @otel_common.AnyValue {
+  match self {
+    AttributeValue::String(s) =>
+      @otel_common.AnyValue::{
+        value: @otel_common.AnyValue_Value::StringValue(s),
+      }
+    AttributeValue::Int(i) =>
+      @otel_common.AnyValue::{
+        value: @otel_common.AnyValue_Value::IntValue(i.to_int64()),
+      }
+    AttributeValue::Bool(b) =>
+      @otel_common.AnyValue::{
+        value: @otel_common.AnyValue_Value::BoolValue(b),
+      }
+    AttributeValue::Double(d) =>
+      @otel_common.AnyValue::{
+        value: @otel_common.AnyValue_Value::DoubleValue(d),
+      }
   }
 }
 
@@ -25,31 +54,41 @@ pub struct Attributes {
   map : Map[String, AttributeValue]
 }
 
+///|
 impl ToJson for Attributes with to_json(self : Attributes) -> Json {
-  self.map.iterator().map(fn(kv) {
+  self.map
+  .iterator()
+  .map(fn(kv) {
     let key = kv.0
     let value = kv.1
-    Json::object({ "key": Json::string(key), "value": value.to_json()})
-  }).to_json()
+    Json::object({ "key": Json::string(key), "value": value.to_json() })
+  })
+  .to_json()
 }
-
 
 ///|
 pub fn Attributes::new() -> Attributes {
   { map: Map::new() }
 }
 
+///|
 pub fn Attributes::copy(self : Attributes) -> Attributes {
   let new_map = self.map.copy()
   { map: new_map }
 }
 
-pub fn Attributes::set(self : Attributes, key : String, value : AttributeValue) -> Attributes {
+///|
+pub fn Attributes::set(
+  self : Attributes,
+  key : String,
+  value : AttributeValue,
+) -> Attributes {
   let new_map = self.map.copy()
   new_map.set(key, value)
-  { map: new_map   }
+  { map: new_map }
 }
 
+///|
 pub fn Attributes::is_empty(self : Attributes) -> Bool {
   self.map.is_empty()
 }
@@ -153,7 +192,6 @@ pub fn Attributes::each(
   self.map.each(f)
 }
 
-
 // Resource represents an immutable representation of the entity producing telemetry.
 // For example, a process producing telemetry that is running in a container on Kubernetes
 // has a Pod name, a namespace, and possibly a deployment name.
@@ -162,6 +200,18 @@ pub fn Attributes::each(
 pub struct Resource {
   attributes : Attributes
 } derive(ToJson)
+
+///|
+pub fn Resource::to_protobuf(self : Resource) -> @resource.Resource {
+  let resourece = @resource.Resource::default()
+  self.attributes.map.each(fn(key, value) {
+    resourece.attributes.push(@otel_common.KeyValue::{
+      key,
+      value: value.to_protobuf(),
+    })
+  })
+  resourece
+}
 
 // Create an empty Resource
 
