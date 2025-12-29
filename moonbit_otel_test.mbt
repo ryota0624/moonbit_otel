@@ -174,21 +174,24 @@ test "SpanContext::is_valid returns false for zero IDs" {
 
 ///|
 test "generate_trace_id creates 32-character hex string" {
-  let trace_id = generate_trace_id()
+  let rand = rand_by_current_time()
+  let trace_id = generate_trace_id(rand)
   assert_eq(trace_id.to_string().length(), 32)
 }
 
 ///|
 test "generate_span_id creates 16-character hex string" {
-  let span_id = generate_span_id()
+  let rand = rand_by_current_time()
+  let span_id = generate_span_id(rand)
   assert_eq(span_id.to_string().length(), 16)
 }
 
 ///|
 test "Span::new creates a new span" {
+  let rand = rand_by_current_time()
   let ctx = SpanContext::new(
-    generate_trace_id(),
-    generate_span_id(),
+    generate_trace_id(rand),
+    generate_span_id(rand),
     0x01,
     false,
   )
@@ -209,9 +212,10 @@ test "Span::new creates a new span" {
 
 ///|
 test "Span::set_attribute adds an attribute" {
+  let rand = rand_by_current_time()
   let ctx = SpanContext::new(
-    generate_trace_id(),
-    generate_span_id(),
+    generate_trace_id(rand),
+    generate_span_id(rand),
     0x01,
     false,
   )
@@ -232,9 +236,10 @@ test "Span::set_attribute adds an attribute" {
 
 ///|
 test "Span::add_event adds an event to the span" {
+  let rand = rand_by_current_time()
   let ctx = SpanContext::new(
-    generate_trace_id(),
-    generate_span_id(),
+    generate_trace_id(rand),
+    generate_span_id(rand),
     0x01,
     false,
   )
@@ -255,9 +260,10 @@ test "Span::add_event adds an event to the span" {
 
 ///|
 test "Span::end marks the span as ended" {
+  let rand = rand_by_current_time()
   let ctx = SpanContext::new(
-    generate_trace_id(),
-    generate_span_id(),
+    generate_trace_id(rand),
+    generate_span_id(rand),
     0x01,
     false,
   )
@@ -276,9 +282,10 @@ test "Span::end marks the span as ended" {
 
 ///|
 test "Span::set_status sets the span status" {
+  let rand = rand_by_current_time()
   let ctx = SpanContext::new(
-    generate_trace_id(),
-    generate_span_id(),
+    generate_trace_id(rand),
+    generate_span_id(rand),
     0x01,
     false,
   )
@@ -297,7 +304,8 @@ test "Span::set_status sets the span status" {
 ///|
 test "Tracer::new creates a tracer" {
   let resource = Resource::empty().with_string(service_name, "my-service")
-  let tracer = Tracer::new("my-library", "1.0.0", resource)
+  let rand = rand_by_current_time()
+  let tracer = Tracer::new("my-library", "1.0.0", resource, rand)
   assert_eq(tracer.name, "my-library")
   assert_eq(tracer.version, "1.0.0")
 }
@@ -305,7 +313,8 @@ test "Tracer::new creates a tracer" {
 ///|
 test "Tracer::start_span creates a span" {
   let resource = Resource::empty().with_string(service_name, "my-service")
-  let tracer = Tracer::new("my-library", "1.0.0", resource)
+  let rand = rand_by_current_time()
+  let tracer = Tracer::new("my-library", "1.0.0", resource, rand)
   let span = tracer.start_span("operation", SpanKind::Server, None)
   assert_eq(span.name, "operation")
   assert_eq(span.kind, SpanKind::Server)
@@ -315,7 +324,8 @@ test "Tracer::start_span creates a span" {
 ///|
 test "Tracer creates child span with parent context" {
   let resource = Resource::empty().with_string(service_name, "my-service")
-  let tracer = Tracer::new("my-library", "1.0.0", resource)
+  let rand = rand_by_current_time()
+  let tracer = Tracer::new("my-library", "1.0.0", resource, rand)
   let parent_span = tracer.start_span("parent", SpanKind::Server, None)
   let parent_context = SpanContext::new(
     parent_span.traceId,
@@ -335,7 +345,8 @@ test "Tracer creates child span with parent context" {
 ///|
 test "SpanBuilder creates span with attributes" {
   let resource = Resource::empty().with_string(service_name, "my-service")
-  let tracer = Tracer::new("my-library", "1.0.0", resource)
+  let rand = rand_by_current_time()
+  let tracer = Tracer::new("my-library", "1.0.0", resource, rand)
   let span = tracer
     .span_builder("http-request")
     .with_kind(SpanKind::Client)

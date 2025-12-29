@@ -11,5 +11,6 @@
       "alias": "trace"
     },
     "moonbitlang/async"
-  ]
+  ],
+  "deps": ["moonbitlang/core/random"]
 }

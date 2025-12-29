@@ -31,6 +31,11 @@ async fn main {
 }
 
 ///|
+fn current_time_nanos() -> Int64 {
+  @otel.get_current_time_ms() * 1_000_000
+}
+
+///|
 pub async fn run_example(
   otlp_config : @otel.OTLPExporterConfig,
   print~ : (String) -> Unit,
@@ -56,13 +61,13 @@ pub async fn run_example(
     .with_attribute("http.method", @otel.AttributeValue::String("GET"))
     .with_attribute("http.url", @otel.AttributeValue::String("/api/users"))
     .with_attribute("http.status_code", @otel.AttributeValue::Int(200))
-    .with_start_time(@otel.get_current_time_ms())
+    .with_start_time(current_time_nanos())
     .start(tracer)
 
   // イベントの追加
   let event = @otel.SpanEvent::new(
     "request_received",
-    @otel.get_current_time_ms(),
+    current_time_nanos(),
     Map::new(),
   )
   let parent_span = parent_span.add_event(event)
@@ -83,15 +88,15 @@ pub async fn run_example(
       "db.statement",
       @otel.AttributeValue::String("SELECT * FROM users"),
     )
-    .with_start_time(@otel.get_current_time_ms())
+    .with_start_time(current_time_nanos())
     .start(tracer)
     .set_status(@otel.SpanStatus::Ok)
-    .end(@otel.get_current_time_ms())
+    .end(current_time_nanos())
 
   // 親Spanを終了
   let parent_span = parent_span
     .set_status(@otel.SpanStatus::Ok)
-    .end(@otel.get_current_time_ms())
+    .end(current_time_nanos())
 
   // ConsoleExporterの作成
   let console_exporter = @otel.PrettyPrintExporter::new(print)
