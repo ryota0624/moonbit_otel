@@ -1,0 +1,11 @@
+version: v2
+inputs:
+  - directory: opentelemetry-proto
+plugins:
+  - local: ["./protoc-gen-mbt.exe"]
+    out: .
+    opt:
+      - project_name=opentelemetry_proto_mbt
+      - json=true
+      - async=false
+      - username=ryota0624

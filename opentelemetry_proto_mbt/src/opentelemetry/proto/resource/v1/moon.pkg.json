@@ -1,0 +1,9 @@
+{
+  "import": [
+    "moonbitlang/protobuf",
+    {
+      "path": "ryota0624/opentelemetry_proto_mbt/opentelemetry/proto/common/v1",
+      "alias": "v1"
+    }
+  ]
+}
