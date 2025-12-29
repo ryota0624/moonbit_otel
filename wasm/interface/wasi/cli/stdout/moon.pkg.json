@@ -1,9 +1,0 @@
-{
-  "import": [
-    {
-      "path": "ryota0624/moonbit_otel_wasm/interface/wasi/io/streams",
-      "alias": "streams"
-    }
-  ],
-  "warn-list": "-44"
-}

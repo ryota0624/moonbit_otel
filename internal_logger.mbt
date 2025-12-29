@@ -5,7 +5,8 @@ struct InternalLogger {
 
 ///|
 fn InternalLogger::log(self : InternalLogger, message : &Show) -> Unit {
-  (self.print_fn)(["[internal logger]", message.to_string()])
+  let i_m : &Show = "[internal logger]"
+  (self.print_fn)([i_m, message])
 }
 
 ///|
