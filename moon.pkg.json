@@ -4,5 +4,12 @@
     "otlp_http_native.mbt": ["native"],
     "otlp_http_js.mbt": ["js"]
   },
-  "supported-targets": ["js", "native"]
+  "supported-targets": ["js", "native"],
+  "import": [
+    {
+      "path": "ryota0624/opentelemetry_proto_mbt/opentelemetry/proto/trace/v1",
+      "alias": "trace"
+    },
+    "moonbitlang/async"
+  ]
 }

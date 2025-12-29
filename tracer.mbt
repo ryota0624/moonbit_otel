@@ -1,4 +1,5 @@
 // TracerConfig holds configuration for Tracer ID generation
+
 ///|
 pub struct TracerConfig {
   trace_id_generator : () -> TraceID
@@ -8,8 +9,11 @@ pub struct TracerConfig {
 // Create default TracerConfig using built-in generators
 
 ///|
-pub fn TracerConfig::default() -> TracerConfig {
-  { trace_id_generator: generate_trace_id, span_id_generator: generate_span_id }
+pub fn TracerConfig::default(rand : @random.Rand) -> TracerConfig {
+  {
+    trace_id_generator: () => generate_trace_id(rand),
+    span_id_generator: () => generate_span_id(rand),
+  }
 }
 
 // Set custom trace ID generator
@@ -33,6 +37,7 @@ pub fn TracerConfig::with_span_id_generator(
 }
 
 // Tracer is responsible for creating Spans
+
 ///|
 pub struct Tracer {
   name : String // Tracer name (usually the instrumentation library name)
@@ -48,8 +53,9 @@ pub fn Tracer::new(
   name : String,
   version : String,
   resource : Resource,
+  rand : @random.Rand,
 ) -> Tracer {
-  let config = TracerConfig::default()
+  let config = TracerConfig::default(rand)
   { name, version, resource, config }
 }
 

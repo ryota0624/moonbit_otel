@@ -7,7 +7,11 @@
   "keywords": [],
   "description": "",
   "deps": {
-    "moonbitlang/async": "0.15.0"
+    "moonbitlang/async": "0.15.0",
+    "ryota0624/opentelemetry_proto_mbt": {
+      "version": "0.1.0",
+      "path": "./opentelemetry_proto_mbt"
+    }
   },
   "preferred-target": "native"
 }

@@ -8,6 +8,7 @@ pub struct TraceID {
   value : String // 32-character hex string
 } derive(Eq, Show)
 
+///|
 impl ToJson for TraceID with to_json(self : TraceID) -> Json {
   Json::string(self.value)
 }
@@ -40,6 +41,7 @@ pub struct SpanID {
   value : String // 16-character hex string
 } derive(Eq, Show)
 
+///|
 impl ToJson for SpanID with to_json(self : SpanID) -> Json {
   Json::string(self.value)
 }
@@ -65,7 +67,7 @@ pub fn SpanID::is_valid(self : SpanID) -> Bool {
   self.value != "0000000000000000"
 }
 
-// SpanContext represents the portion of a Span which must be serialized and 
+// SpanContext represents the portion of a Span which must be serialized and
 // propagated along side of a distributed context.
 
 ///|
@@ -114,6 +116,7 @@ pub(all) enum SpanKind {
   Consumer // Child of an asynchronous request (e.g., message consumer)
 } derive(Eq, Show)
 
+///|
 pub impl ToJson for SpanKind with to_json(self : SpanKind) -> Json {
   let kind_code = match self {
     SpanKind::Unspecified => 0
@@ -192,7 +195,102 @@ pub struct Span {
   droppedEventsCount : Int
   status : SpanStatus
   resource : Resource
-} derive(ToJson)
+}
+
+///|
+pub fn hex_to_bytes(hex : String) -> Bytes? {
+  // Hex string must have even length (2 chars per byte)
+  if hex.length() % 2 != 0 {
+    return None
+  }
+  let byte_count = hex.length() / 2
+  let byte_array = Array::new(capacity=byte_count)
+  for i = 0; i < byte_count; i = i + 1 {
+    let high_char = hex[i * 2].to_int().unsafe_to_char()
+    let low_char = hex[i * 2 + 1].to_int().unsafe_to_char()
+    match (char_to_int(high_char), char_to_int(low_char)) {
+      (Some(high), Some(low)) => {
+        let byte_value = high * 16 + low
+        byte_array.push(byte_value.to_byte())
+      }
+      _ => return None
+    }
+  }
+  Some(Bytes::from_array(byte_array))
+}
+
+///|
+pub fn char_to_int(c : Char) -> Int? {
+  if c >= '0' && c <= '9' {
+    Some(c.to_int() - '0'.to_int())
+  } else if c >= 'a' && c <= 'f' {
+    Some(c.to_int() - 'a'.to_int() + 10)
+  } else if c >= 'A' && c <= 'F' {
+    Some(c.to_int() - 'A'.to_int() + 10)
+  } else {
+    None
+  }
+}
+
+///|
+impl ToJson for Span with to_json(self : Span) -> Json {
+  // OTLP JSON format requires hex-encoded traceId and spanId (not base64!)
+  let json_obj : Map[String, Json] = {}
+
+  // Required fields with hex encoding (lowercase)
+  json_obj["traceId"] = Json::string(self.traceId.value)
+  json_obj["spanId"] = Json::string(self.spanId.value)
+
+  // Optional parent span ID
+  match self.parentSpanId {
+    Some(id) => json_obj["parentSpanId"] = Json::string(id.value)
+    None => ()
+  }
+
+  // Trace state
+  if self.traceState != "" {
+    json_obj["traceState"] = Json::string(self.traceState)
+  }
+
+  // Span name and kind
+  json_obj["name"] = Json::string(self.name)
+  json_obj["kind"] = Json::string(
+    match self.kind {
+      SpanKind::Unspecified => "SPAN_KIND_UNSPECIFIED"
+      SpanKind::Internal => "SPAN_KIND_INTERNAL"
+      SpanKind::Server => "SPAN_KIND_SERVER"
+      SpanKind::Client => "SPAN_KIND_CLIENT"
+      SpanKind::Producer => "SPAN_KIND_PRODUCER"
+      SpanKind::Consumer => "SPAN_KIND_CONSUMER"
+    },
+  )
+
+  // Timestamps as strings
+  json_obj["startTimeUnixNano"] = Json::string(
+    self.startTimeUnixNano.to_string(),
+  )
+  match self.endTimeUnixNano {
+    Some(end) => json_obj["endTimeUnixNano"] = Json::string(end.to_string())
+    None => ()
+  }
+
+  // Flags
+  if self.flags != 0 {
+    json_obj["flags"] = Json::number(self.flags.to_double())
+  }
+
+  // Status
+  let status_json : Map[String, Json] = {}
+  status_json["code"] = Json::string(
+    match self.status {
+      SpanStatus::Unset => "STATUS_CODE_UNSET"
+      SpanStatus::Ok => "STATUS_CODE_OK"
+      SpanStatus::Error => "STATUS_CODE_ERROR"
+    },
+  )
+  json_obj["status"] = Json::object(status_json)
+  Json::object(json_obj)
+}
 
 // Create a new Span
 
@@ -279,33 +377,73 @@ pub fn Span::duration(self : Span) -> Int64? {
   }
 }
 
-// Helper function to generate a random hex string of given length
+///|
+#cfg(target="js")
+extern "js" fn js_date_now_double() -> Double =
+  #|() => Date.now()
 
 ///|
-fn random_hex(length : Int) -> String {
+#cfg(target="js")
+pub fn get_current_time_ms() -> Int64 {
+  js_date_now_double().to_int64()
+}
+
+///|
+#cfg(target="native")
+pub fn get_current_time_ms() -> Int64 {
+  @async.now()
+}
+
+// Helper function to generate a random hex string of given length
+// Note: Uses current timestamp as seed for randomness
+
+///|
+pub fn rand_by_current_time() -> @random.Rand {
+  // Create a 32-byte seed from timestamp to ensure different values on each call
+  let timestamp = get_current_time_ms()
+  let seed_array = Array::new(capacity=32)
+  // Fill seed with timestamp bytes (repeat as needed)
+  for i = 0; i < 32; i = i + 1 {
+    let shift = i % 8 * 8
+    let timestamp_int = timestamp.to_int()
+    let byte_val = ((timestamp_int >> shift) & 0xFF).to_byte()
+    seed_array.push(byte_val)
+  }
+  let seed_bytes = Bytes::from_array(seed_array)
+  @random.Rand::chacha8(seed=seed_bytes)
+}
+
+///|
+fn random_hex(length : Int, rand : @random.Rand) -> String {
   let chars = [
-    "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f",
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
   ]
   let mut result = ""
   for i = 0; i < length; i = i + 1 {
-    // Simple pseudo-random generation (not cryptographically secure)
-    // In production, this should use a proper random number generator
-    let index = (i * 7 + 13) % 16
-    result = result + chars[index]
+    let index = rand.int(limit=16)
+    result = result + chars[index].to_string()
   }
   result
+}
+
+///|
+test "random_hex generates hex string of correct length" {
+  let hex16 = random_hex(16, rand_by_current_time())
+  assert_eq(hex16.length(), 16)
+  let hex32 = random_hex(32, rand_by_current_time())
+  assert_eq(hex32.length(), 32)
 }
 
 // Generate a new TraceID (128-bit, 32 hex characters)
 
 ///|
-pub fn generate_trace_id() -> TraceID {
-  TraceID::new(random_hex(32))
+pub fn generate_trace_id(rand : @random.Rand) -> TraceID {
+  TraceID::new(random_hex(32, rand))
 }
 
 // Generate a new SpanID (64-bit, 16 hex characters)
 
 ///|
-pub fn generate_span_id() -> SpanID {
-  SpanID::new(random_hex(16))
+pub fn generate_span_id(rand : @random.Rand) -> SpanID {
+  SpanID::new(random_hex(16, rand))
 }
