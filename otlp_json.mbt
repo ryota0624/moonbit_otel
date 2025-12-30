@@ -112,15 +112,11 @@ pub fn spans_to_resource_spans_protobuf_bytes(spans : Array[Span]) -> Bytes {
     schemaUrl: None,
   }
   let otlp : OtlpResourceSpans = { resourceSpans: [resource_span] }
-  for rs in otlp.resourceSpans {
-    let otlp_rs = @trace.ResourceSpans::default()
-    otlp_rs.schema_url = rs.schemaUrl.unwrap_or("")
-    otlp_rs.resource = resource.to_protobuf()
-    otlp_rs.scope_spans = []
-  }
-  let p_resource = otlp.to_protobuf()
+
+  // Convert to protobuf TracesData
+  let traces_data = otlp.to_protobuf()
   let buffer = @buffer.new()
-  p_resource.write(buffer) catch {
+  traces_data.write(buffer) catch {
     e => {
       // Handle serialization error
       println("Error serializing spans to Protobuf: " + e.to_string())
