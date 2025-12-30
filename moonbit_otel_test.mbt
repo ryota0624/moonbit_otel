@@ -202,6 +202,7 @@ test "Span::new creates a new span" {
     SpanKind::Internal,
     1000L,
     resource,
+    TracerIdentifier::new("test-tracer", "1.0.0"),
     None,
   )
   assert_eq(span.name, "test-span")
@@ -212,22 +213,10 @@ test "Span::new creates a new span" {
 
 ///|
 test "Span::set_attribute adds an attribute" {
-  let rand = rand_by_current_time()
-  let ctx = SpanContext::new(
-    generate_trace_id(rand),
-    generate_span_id(rand),
-    0x01,
-    false,
+  let span = create_test_span().set_attribute(
+    "http.method",
+    AttributeValue::String("GET"),
   )
-  let resource = Resource::empty()
-  let span = Span::new(
-    ctx,
-    "test-span",
-    SpanKind::Internal,
-    1000L,
-    resource,
-    None,
-  ).set_attribute("http.method", AttributeValue::String("GET"))
   assert_eq(
     span.attributes.get("http.method"),
     Some(AttributeValue::String("GET")),
@@ -236,22 +225,7 @@ test "Span::set_attribute adds an attribute" {
 
 ///|
 test "Span::add_event adds an event to the span" {
-  let rand = rand_by_current_time()
-  let ctx = SpanContext::new(
-    generate_trace_id(rand),
-    generate_span_id(rand),
-    0x01,
-    false,
-  )
-  let resource = Resource::empty()
-  let span = Span::new(
-    ctx,
-    "test-span",
-    SpanKind::Internal,
-    1000L,
-    resource,
-    None,
-  )
+  let span = create_test_span()
   let event = SpanEvent::new("error", 2000L, Map::new())
   let span_with_event = span.add_event(event)
   assert_eq(span_with_event.events.length(), 1)
@@ -260,20 +234,18 @@ test "Span::add_event adds an event to the span" {
 
 ///|
 test "Span::end marks the span as ended" {
-  let rand = rand_by_current_time()
-  let ctx = SpanContext::new(
-    generate_trace_id(rand),
-    generate_span_id(rand),
-    0x01,
-    false,
-  )
+  let trace_id = TraceID::new("5b8efff798038103d269b633813fc60c")
+  let span_id = SpanID::new("eee19b7ec3c1b174")
+  let context = SpanContext::new(trace_id, span_id, 1, false)
+  let tracer_identifier = TracerIdentifier::new("test-tracer", "1.0.0")
   let resource = Resource::empty()
   let span = Span::new(
-    ctx,
+    context,
     "test-span",
     SpanKind::Internal,
     1000L,
     resource,
+    tracer_identifier,
     None,
   ).end(3000L)
   assert_true(span.is_ended())
@@ -282,22 +254,7 @@ test "Span::end marks the span as ended" {
 
 ///|
 test "Span::set_status sets the span status" {
-  let rand = rand_by_current_time()
-  let ctx = SpanContext::new(
-    generate_trace_id(rand),
-    generate_span_id(rand),
-    0x01,
-    false,
-  )
-  let resource = Resource::empty()
-  let span = Span::new(
-    ctx,
-    "test-span",
-    SpanKind::Internal,
-    1000L,
-    resource,
-    None,
-  ).set_status(SpanStatus::Ok)
+  let span = create_test_span().set_status(SpanStatus::Ok)
   assert_eq(span.status, SpanStatus::Ok)
 }
 
@@ -306,8 +263,8 @@ test "Tracer::new creates a tracer" {
   let resource = Resource::empty().with_string(service_name, "my-service")
   let rand = rand_by_current_time()
   let tracer = Tracer::new("my-library", "1.0.0", resource, rand)
-  assert_eq(tracer.name, "my-library")
-  assert_eq(tracer.version, "1.0.0")
+  assert_eq(tracer.name(), "my-library")
+  assert_eq(tracer.version(), "1.0.0")
 }
 
 ///|

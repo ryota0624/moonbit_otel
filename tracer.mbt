@@ -46,10 +46,28 @@ pub struct Tracer {
 }
 
 ///|
+pub fn Tracer::name(self : Tracer) -> String {
+  self.identifier.name
+}
+
+///|
+pub fn Tracer::version(self : Tracer) -> String {
+  self.identifier.version
+}
+
+///|
 pub struct TracerIdentifier {
   name : String // Tracer name (usually the instrumentation library name)
   version : String // Tracer version
 } derive(Hash, Eq)
+
+///|
+pub fn TracerIdentifier::new(
+  name : String,
+  version : String,
+) -> TracerIdentifier {
+  { name, version }
+}
 
 // Create a new Tracer with default configuration
 

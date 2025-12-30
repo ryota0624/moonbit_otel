@@ -8,7 +8,7 @@
 ///|
 struct OtlpResourceSpans {
   resource_spans : Array[OtlpResourceSpan]
-} derive(ToJson)
+} derive(ToJson(rename_fields="camelCase"))
 
 ///|
 fn OtlpResourceSpans::to_protobuf(
@@ -62,7 +62,7 @@ struct OtlpResourceSpan {
   resource : Resource
   scope_spans : Array[OtlpScopeSpan]
   schemaUrl : String?
-} derive(ToJson)
+} derive(ToJson(rename_fields="camelCase"))
 
 ///|
 fn OtlpResourceSpans::from_map(
@@ -87,7 +87,7 @@ struct OtlpScopeSpan {
   scope : OtlpScope
   spans : Array[Span]
   schema_url : String?
-} derive(ToJson)
+} derive(ToJson(rename_fields="camelCase"))
 
 ///|
 fn OtlpResourceSpan::from_map(

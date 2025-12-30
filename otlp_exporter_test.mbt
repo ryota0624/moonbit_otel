@@ -18,7 +18,7 @@ test "SpanStatus serializes via ToJson" {
 test "SpanKind serializes via ToJson" {
   let kind = SpanKind::Server
   let json = kind.to_json().to_string()
-  assert_true(json.contains("Server"))
+  assert_true(json.contains("2"))
 }
 
 // Helper function to create a test span
@@ -28,6 +28,7 @@ fn create_test_span() -> Span {
   let trace_id = TraceID::new("5b8efff798038103d269b633813fc60c")
   let span_id = SpanID::new("eee19b7ec3c1b174")
   let context = SpanContext::new(trace_id, span_id, 1, false)
+  let tracer_identifier = TracerIdentifier::new("test-tracer", "1.0.0")
   let resource = Resource::empty()
   Span::new(
     context,
@@ -35,6 +36,7 @@ fn create_test_span() -> Span {
     SpanKind::Internal,
     1000000000,
     resource,
+    tracer_identifier,
     None,
   )
 }
@@ -43,7 +45,6 @@ fn create_test_span() -> Span {
 test "spans_to_resource_spans_json produces complete OTLP structure" {
   let span = create_test_span()
   let json = spans_to_resource_spans_json([span])
-
   // Check for OTLP structure
   assert_true(json.contains("\"resourceSpans\""))
   assert_true(json.contains("\"resource\""))
