@@ -202,6 +202,34 @@ pub struct Resource {
 } derive(ToJson)
 
 ///|
+impl Hash for Resource with hash_combine(self, hasher) {
+  self.attributes.map.each(fn(key, value) {
+    hasher.combine_string(key)
+    match value {
+      AttributeValue::String(s) => hasher.combine_string(s)
+      AttributeValue::Int(i) => hasher.combine_int(i)
+      AttributeValue::Bool(b) => hasher.combine_bool(b)
+      AttributeValue::Double(d) => hasher.combine_double(d)
+    }
+  })
+}
+
+///|
+impl Eq for Resource with equal(self, other : Resource) -> Bool {
+  if self.attributes.size() != other.attributes.size() {
+    return false
+  }
+  for kv in self.attributes.map {
+    let (key, value) = kv
+    match other.attributes.get(key) {
+      Some(v) => if value != v { return false }
+      None => return false
+    }
+  }
+  true
+}
+
+///|
 pub fn Resource::to_protobuf(self : Resource) -> @resource.Resource {
   let resourece = @resource.Resource::default()
   self.attributes.map.each(fn(key, value) {

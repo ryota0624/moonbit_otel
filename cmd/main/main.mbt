@@ -111,13 +111,13 @@ pub async fn run_example(
     .end(current_time_nanos())
 
   // ConsoleExporterの作成
-  // let console_exporter = @otel.PrettyPrintExporter::new(print)
+  let console_exporter = @otel.PrettyPrintExporter::new(print)
 
-  // // Spanをコンソールにエクスポート
-  // console_exporter.export_spans([parent_span, child_span])
+  // Spanをコンソールにエクスポート
+  console_exporter.export_spans([parent_span, child_span])
 
-  // // ConsoleExporterをシャットダウン
-  // console_exporter.shutdown()
+  // ConsoleExporterをシャットダウン
+  console_exporter.shutdown()
 
   // OTLPExporterの作成
   let otlp_exporter : &@otel.SpanExporter = @otel.OTLPExporter::new(otlp_config)

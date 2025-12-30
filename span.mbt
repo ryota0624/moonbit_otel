@@ -195,6 +195,7 @@ pub struct Span {
   droppedEventsCount : Int
   status : SpanStatus
   resource : Resource
+  pub tracer_identifier : TracerIdentifier
 }
 
 ///|
@@ -361,6 +362,7 @@ pub fn Span::new(
   kind : SpanKind,
   start_time : Int64,
   resource : Resource,
+  tracer_identifier : TracerIdentifier,
   parent_span_id : SpanID?,
 ) -> Span {
   {
@@ -379,6 +381,7 @@ pub fn Span::new(
     events: [],
     droppedEventsCount: 0,
     resource,
+    tracer_identifier,
   }
 }
 

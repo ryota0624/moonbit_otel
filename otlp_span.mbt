@@ -7,7 +7,7 @@
 
 ///|
 struct OtlpResourceSpans {
-  resourceSpans : Array[OtlpResourceSpan]
+  resource_spans : Array[OtlpResourceSpan]
 } derive(ToJson)
 
 ///|
@@ -16,25 +16,92 @@ fn OtlpResourceSpans::to_protobuf(
 ) -> @trace.TracesData {
   let otlp_td = @trace.TracesData::default()
   otlp_td.resource_spans = []
-  for rs in self.resourceSpans {
+  for rs in self.resource_spans {
     otlp_td.resource_spans.push(rs.to_protobuf())
   }
   otlp_td
 }
 
 ///|
+fn OtlpResourceSpans::from_spans(spans : Array[Span]) -> OtlpResourceSpans {
+  if spans.length() == 0 {
+    return { resource_spans: [] }
+  }
+  let spans_grouped_by_resource : Map[Resource, Array[Span]] = Map::new()
+  for span in spans {
+    let resource = span.resource
+    if !spans_grouped_by_resource.contains(resource) {
+      spans_grouped_by_resource[resource] = []
+    }
+    spans_grouped_by_resource[resource].push(span)
+  }
+  let spans_grouped_by_tracer_identifier : Map[
+    Resource,
+    Map[TracerIdentifier, Array[Span]],
+  ] = Map::new()
+  for rs in spans_grouped_by_resource {
+    let (resource, spans) = rs
+    let tracer_map : Map[TracerIdentifier, Array[Span]] = Map::new()
+    for span in spans {
+      let tracer_id = span.tracer_identifier
+      if !tracer_map.contains(tracer_id) {
+        tracer_map[tracer_id] = []
+      }
+      tracer_map[tracer_id].push(span)
+    }
+    spans_grouped_by_tracer_identifier[resource] = tracer_map
+  }
+  let scope_spans_from_map = OtlpResourceSpans::from_map(
+    spans_grouped_by_tracer_identifier,
+  )
+  scope_spans_from_map
+}
+
+///|
 struct OtlpResourceSpan {
   resource : Resource
-  scopeSpans : Array[OtlpScopeSpan]
+  scope_spans : Array[OtlpScopeSpan]
   schemaUrl : String?
 } derive(ToJson)
+
+///|
+fn OtlpResourceSpans::from_map(
+  map : Map[Resource, Map[TracerIdentifier, Array[Span]]],
+) -> OtlpResourceSpans {
+  let resource_spans : Array[OtlpResourceSpan] = []
+  for rm in map {
+    let (resource, tracer_map) = rm
+    let scope_spans = OtlpResourceSpan::from_map(tracer_map)
+    let resource_span : OtlpResourceSpan = {
+      resource,
+      scope_spans,
+      schemaUrl: None,
+    }
+    resource_spans.push(resource_span)
+  }
+  OtlpResourceSpans::{ resource_spans, }
+}
 
 ///|
 struct OtlpScopeSpan {
   scope : OtlpScope
   spans : Array[Span]
-  schemaUrl : String?
+  schema_url : String?
 } derive(ToJson)
+
+///|
+fn OtlpResourceSpan::from_map(
+  map : Map[TracerIdentifier, Array[Span]],
+) -> Array[OtlpScopeSpan] {
+  let scope_spans : Array[OtlpScopeSpan] = []
+  for ti in map {
+    let (tracer_id, spans) = ti
+    let scope : OtlpScope = { name: tracer_id.name, version: tracer_id.version }
+    let scope_span : OtlpScopeSpan = { scope, spans, schema_url: None }
+    scope_spans.push(scope_span)
+  }
+  scope_spans
+}
 
 ///|
 fn OtlpResourceSpan::to_protobuf(
@@ -44,9 +111,9 @@ fn OtlpResourceSpan::to_protobuf(
   otlp_rs.schema_url = self.schemaUrl.unwrap_or("")
   otlp_rs.resource = self.resource.to_protobuf()
   otlp_rs.scope_spans = []
-  for ss in self.scopeSpans {
+  for ss in self.scope_spans {
     let otlp_ss = @trace.ScopeSpans::default()
-    otlp_ss.schema_url = ss.schemaUrl.unwrap_or("")
+    otlp_ss.schema_url = ss.schema_url.unwrap_or("")
     otlp_ss.scope = @otel_common.InstrumentationScope::default()
     otlp_ss.scope.name = ss.scope.name
     otlp_ss.scope.version = ss.scope.version
@@ -73,19 +140,7 @@ pub fn spans_to_resource_spans_json(spans : Array[Span]) -> String {
   if spans.length() == 0 {
     return "{\"resourceSpans\":[]}"
   }
-
-  // Use first span's resource
-  let resource = spans[0].resource
-
-  // Build OTLP structure
-  let scope : OtlpScope = { name: "otel-tracer", version: "1.0.0" }
-  let scope_span : OtlpScopeSpan = { scope, spans, schemaUrl: None }
-  let resource_span : OtlpResourceSpan = {
-    resource,
-    scopeSpans: [scope_span],
-    schemaUrl: None,
-  }
-  let otlp : OtlpResourceSpans = { resourceSpans: [resource_span] }
+  let otlp = OtlpResourceSpans::from_spans(spans)
   otlp.to_json().stringify()
 }
 
@@ -98,18 +153,7 @@ pub fn spans_to_resource_spans_protobuf_bytes(
   if spans.length() == 0 {
     return Bytes::new(0)
   }
-  // Use first span's resource
-  let resource = spans[0].resource
-
-  // Build OTLP structure
-  let scope : OtlpScope = { name: "otel-tracer", version: "1.0.0" }
-  let scope_span : OtlpScopeSpan = { scope, spans, schemaUrl: None }
-  let resource_span : OtlpResourceSpan = {
-    resource,
-    scopeSpans: [scope_span],
-    schemaUrl: None,
-  }
-  let otlp : OtlpResourceSpans = { resourceSpans: [resource_span] }
+  let otlp = OtlpResourceSpans::from_spans(spans)
 
   // Convert to protobuf TracesData
   let traces_data = otlp.to_protobuf()

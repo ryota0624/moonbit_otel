@@ -40,11 +40,16 @@ pub fn TracerConfig::with_span_id_generator(
 
 ///|
 pub struct Tracer {
-  name : String // Tracer name (usually the instrumentation library name)
-  version : String // Tracer version
+  identifier : TracerIdentifier // Identifier for this tracer
   resource : Resource // Resource associated with this tracer
   config : TracerConfig // Configuration for ID generation
 }
+
+///|
+pub struct TracerIdentifier {
+  name : String // Tracer name (usually the instrumentation library name)
+  version : String // Tracer version
+} derive(Hash, Eq)
 
 // Create a new Tracer with default configuration
 
@@ -56,7 +61,7 @@ pub fn Tracer::new(
   rand : @random.Rand,
 ) -> Tracer {
   let config = TracerConfig::default(rand)
-  { name, version, resource, config }
+  { identifier: { name, version }, resource, config }
 }
 
 // Create a new Tracer with custom configuration
@@ -68,7 +73,7 @@ pub fn Tracer::with_config(
   resource : Resource,
   config : TracerConfig,
 ) -> Tracer {
-  { name, version, resource, config }
+  { identifier: { name, version }, resource, config }
 }
 
 // SpanBuilder helps construct a Span with various options
@@ -171,6 +176,7 @@ pub fn SpanBuilder::start(self : SpanBuilder, tracer : Tracer) -> Span {
     self.kind,
     start_time,
     tracer.resource,
+    tracer.identifier,
     parent_span_id,
   )
 
