@@ -1,33 +1,43 @@
 ///|
 #cfg(target="js")
 async fn main {
-  let provider = @otel_js.http_client_provider()
-  let adaptor = @otel.HttpSendAdaptor::new(
-    provider,
+  // Using JSON format
+  let json_provider = @otel_js.json_http_client_provider()
+  let json_config = @otel.OTLPExporterConfig::http_json(
+    json_provider,
     endpoint="http://192.168.0.9:4318/v1/traces",
-  )
-  run_example(
-    @otel.OTLPExporterConfig::default(@otel.Http(adaptor)).enable_debug_log(
-      print=println,
-    ),
-    print=println,
-  )
+  ).enable_debug_log(print=println)
+
+  // Using Protobuf format
+  let protobuf_provider = @otel_js.protobuf_http_client_provider()
+  let protobuf_config = @otel.OTLPExporterConfig::http_protobuf(
+    protobuf_provider,
+    endpoint="http://192.168.0.9:4318/v1/traces",
+  ).enable_debug_log(print=println)
+
+  // Run example with Protobuf (you can change to json_config if needed)
+  run_example(protobuf_config, print=println)
 }
 
 ///|
 #cfg(target="native")
 async fn main {
-  let provider = @otel_native.http_client_provider()
-  let adaptor = @otel.HttpSendAdaptor::new(
-    provider,
+  // Using JSON format
+  let json_provider = @otel_native.json_http_client_provider()
+  let json_config = @otel.OTLPExporterConfig::http_json(
+    json_provider,
     endpoint="http://192.168.0.9:4318/v1/traces",
-  )
-  run_example(
-    @otel.OTLPExporterConfig::default(@otel.Http(adaptor)).enable_debug_log(
-      print=println,
-    ),
-    print=println,
-  )
+  ).enable_debug_log(print=println)
+
+  // Using Protobuf format
+  let protobuf_provider = @otel_native.protobuf_http_client_provider()
+  let protobuf_config = @otel.OTLPExporterConfig::http_protobuf(
+    protobuf_provider,
+    endpoint="http://192.168.0.9:4318/v1/traces",
+  ).enable_debug_log(print=println)
+
+  // Run example with Protobuf (you can change to json_config if needed)
+  run_example(protobuf_config, print=println)
 }
 
 ///|

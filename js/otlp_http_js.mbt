@@ -20,11 +20,19 @@ async fn[T, E : Error] suspend(
 // You must define this in your JavaScript runtime before using MoonBit
 
 ///|
-priv struct HttpClientOnFetchApi {}
+priv struct JsonHttpClientOnFetchApi {}
 
 ///|
-pub fn http_client_provider() -> &@lib.HttpClientProvider {
-  HttpClientOnFetchApi::{  }
+priv struct ProtobufHttpClientOnFetchApi {}
+
+///|
+pub fn json_http_client_provider() -> &@lib.JsonHttpClientProvider {
+  JsonHttpClientOnFetchApi::{  }
+}
+
+///|
+pub fn protobuf_http_client_provider() -> &@lib.ProtobufHttpClientProvider {
+  ProtobufHttpClientOnFetchApi::{  }
 }
 
 ///|
@@ -63,8 +71,8 @@ async fn http_post_internal(
 }
 
 ///|
-impl @lib.HttpClient for HttpClientOnFetchApi with http_post_json(
-  _ : HttpClientOnFetchApi,
+impl @lib.JsonHttpClient for JsonHttpClientOnFetchApi with http_post_json(
+  _ : JsonHttpClientOnFetchApi,
   url : String,
   body : String,
   headers : Map[String, String],
@@ -73,10 +81,33 @@ impl @lib.HttpClient for HttpClientOnFetchApi with http_post_json(
 }
 
 ///|
-impl @lib.HttpClientProvider for HttpClientOnFetchApi with get_client(
-  _ : HttpClientOnFetchApi,
-) -> &@lib.HttpClient {
-  HttpClientOnFetchApi::{  }
+impl @lib.JsonHttpClientProvider for JsonHttpClientOnFetchApi with get_json_client(
+  _ : JsonHttpClientOnFetchApi,
+) -> &@lib.JsonHttpClient {
+  JsonHttpClientOnFetchApi::{  }
+}
+
+///|
+impl @lib.ProtobufHttpClient for ProtobufHttpClientOnFetchApi with http_post_protobuf(
+  _ : ProtobufHttpClientOnFetchApi,
+  url : String,
+  body : Bytes,
+  headers : Map[String, String],
+) -> Result[@lib.HttpResponse, @lib.HttpError] {
+  // Convert Bytes to String for the HTTP request
+  http_post_internal({
+    url,
+    http_method: "POST",
+    headers,
+    body: body.to_string(),
+  })
+}
+
+///|
+impl @lib.ProtobufHttpClientProvider for ProtobufHttpClientOnFetchApi with get_protobuf_client(
+  _ : ProtobufHttpClientOnFetchApi,
+) -> &@lib.ProtobufHttpClient {
+  ProtobufHttpClientOnFetchApi::{  }
 }
 
 ///|

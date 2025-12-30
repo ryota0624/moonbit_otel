@@ -151,7 +151,7 @@ pub impl ToJson for SpanStatus with to_json(self : SpanStatus) -> Json {
     SpanStatus::Error => "Error"
   }
   Json::object({
-    "code": Json::string(status_code.to_double()),
+    "code": Json::string(status_code),
     "message": Json::string(message),
   })
 }

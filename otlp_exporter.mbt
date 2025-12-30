@@ -2,23 +2,44 @@
 // Sends spans to an OpenTelemetry Collector via HTTP+JSON
 
 ///|
-pub(open) trait HttpClientProvider {
-  get_client(Self) -> &HttpClient
+pub(open) trait JsonHttpClientProvider {
+  get_json_client(Self) -> &JsonHttpClient
 }
 
 ///|
-pub(all) struct HttpSendAdaptor {
-  client_provider : &HttpClientProvider
+pub(open) trait ProtobufHttpClientProvider {
+  get_protobuf_client(Self) -> &ProtobufHttpClient
+}
+
+///|
+pub(all) struct HttpJsonSendAdaptor {
+  client_provider : &JsonHttpClientProvider
   endpoint : String
   headers : Map[String, String]
 }
 
 ///|
-pub fn HttpSendAdaptor::new(
-  client_provider : &HttpClientProvider,
+pub fn HttpJsonSendAdaptor::new(
+  client_provider : &JsonHttpClientProvider,
   endpoint? : String = "http://localhost:4318/v1/traces",
   headers? : Map[String, String] = {},
-) -> HttpSendAdaptor {
+) -> HttpJsonSendAdaptor {
+  { client_provider, endpoint, headers }
+}
+
+///|
+pub(all) struct HttpProtobufSendAdaptor {
+  client_provider : &ProtobufHttpClientProvider
+  endpoint : String
+  headers : Map[String, String]
+}
+
+///|
+pub fn HttpProtobufSendAdaptor::new(
+  client_provider : &ProtobufHttpClientProvider,
+  endpoint? : String = "http://localhost:4318/v1/traces",
+  headers? : Map[String, String] = {},
+) -> HttpProtobufSendAdaptor {
   { client_provider, endpoint, headers }
 }
 
@@ -34,7 +55,8 @@ pub fn StdoutSendAdaptor::new(print : (String) -> Unit) -> StdoutSendAdaptor {
 
 ///|
 pub(all) enum ExportAdapter {
-  Http(HttpSendAdaptor)
+  HttpJson(HttpJsonSendAdaptor)
+  HttpProtobuf(HttpProtobufSendAdaptor)
   Stdout(StdoutSendAdaptor)
 }
 
@@ -52,8 +74,18 @@ pub struct OTLPExporter {
 }
 
 ///|
-pub(open) trait HttpClient {
+pub(open) trait JsonHttpClient {
   async http_post_json(
+    Self,
+    url : String,
+    body : String,
+    headers : Map[String, String],
+  ) -> Result[HttpResponse, HttpError]
+}
+
+///|
+pub(open) trait ProtobufHttpClient {
+  async http_post_protobuf(
     Self,
     url : String,
     body : Bytes,
@@ -80,14 +112,27 @@ pub fn OTLPExporterConfig::stdout(
 }
 
 ///|
-pub fn OTLPExporterConfig::http(
-  client_provider : &HttpClientProvider,
+pub fn OTLPExporterConfig::http_json(
+  client_provider : &JsonHttpClientProvider,
   endpoint? : String = "http://localhost:4318/v1/traces",
   headers? : Map[String, String] = {},
 ) -> OTLPExporterConfig {
   OTLPExporterConfig::default(
-    ExportAdapter::Http(
-      HttpSendAdaptor::new(client_provider, endpoint~, headers~),
+    ExportAdapter::HttpJson(
+      HttpJsonSendAdaptor::new(client_provider, endpoint~, headers~),
+    ),
+  )
+}
+
+///|
+pub fn OTLPExporterConfig::http_protobuf(
+  client_provider : &ProtobufHttpClientProvider,
+  endpoint? : String = "http://localhost:4318/v1/traces",
+  headers? : Map[String, String] = {},
+) -> OTLPExporterConfig {
+  OTLPExporterConfig::default(
+    ExportAdapter::HttpProtobuf(
+      HttpProtobufSendAdaptor::new(client_provider, endpoint~, headers~),
     ),
   )
 }
@@ -126,11 +171,18 @@ pub async fn OTLPExporter::export_spans(
   }
   let adaptor = self.export_adapter
   match adaptor {
-    ExportAdapter::Http(http_adaptor) => {
-      let raw_bytes_body = spans_to_resource_spans_protobuf_bytes(spans)
-      let client = http_adaptor.client_provider.get_client()
-      self.export_spans_by_http_client(
-        raw_bytes_body, client, http_adaptor, spans,
+    ExportAdapter::HttpJson(http_adaptor) => {
+      let json_body = spans_to_resource_spans_json(spans)
+      let client = http_adaptor.client_provider.get_json_client()
+      self.export_spans_by_json_http_client(
+        json_body, client, http_adaptor, spans,
+      )
+    }
+    ExportAdapter::HttpProtobuf(http_adaptor) => {
+      let protobuf_body = spans_to_resource_spans_protobuf_bytes(spans)
+      let client = http_adaptor.client_provider.get_protobuf_client()
+      self.export_spans_by_protobuf_http_client(
+        protobuf_body, client, http_adaptor, spans,
       )
     }
     ExportAdapter::Stdout(stdout_adaptor) =>
@@ -139,25 +191,25 @@ pub async fn OTLPExporter::export_spans(
 }
 
 ///|
-pub async fn OTLPExporter::export_spans_by_http_client(
+pub async fn OTLPExporter::export_spans_by_json_http_client(
   self : OTLPExporter,
-  json_body : Bytes,
-  http_client : &HttpClient,
-  http_adaptor : HttpSendAdaptor,
+  json_body : String,
+  http_client : &JsonHttpClient,
+  http_adaptor : HttpJsonSendAdaptor,
   spans : Array[Span],
 ) -> Unit {
   try {
     let result = http_client.http_post_json(
       http_adaptor.endpoint,
       json_body,
-      http_adaptor.headers.merge({ "Content-Type": "application/x-protobuf" }),
+      http_adaptor.headers.merge({ "Content-Type": "application/json" }),
     )
     match result {
       Ok(response) =>
         if response.status_code >= 200 && response.status_code < 300 {
           // Success - span exported successfully
           self.logger.log(
-            "[OTLP] Exported " + spans.length().to_string() + " span(s)",
+            "[OTLP] Exported " + spans.length().to_string() + " span(s) as JSON",
           )
         } else {
           // HTTP error response - already handled by HttpStatusError
@@ -188,7 +240,64 @@ pub async fn OTLPExporter::export_spans_by_http_client(
       }
     }
   } catch {
-    err => self.logger.log("[OTLP] HTTP export error: " + err.to_string())
+    err => self.logger.log("[OTLP] HTTP JSON export error: " + err.to_string())
+  }
+}
+
+///|
+pub async fn OTLPExporter::export_spans_by_protobuf_http_client(
+  self : OTLPExporter,
+  protobuf_body : Bytes,
+  http_client : &ProtobufHttpClient,
+  http_adaptor : HttpProtobufSendAdaptor,
+  spans : Array[Span],
+) -> Unit {
+  try {
+    let result = http_client.http_post_protobuf(
+      http_adaptor.endpoint,
+      protobuf_body,
+      http_adaptor.headers.merge({ "Content-Type": "application/x-protobuf" }),
+    )
+    match result {
+      Ok(response) =>
+        if response.status_code >= 200 && response.status_code < 300 {
+          // Success - span exported successfully
+          self.logger.log(
+            "[OTLP] Exported " +
+            spans.length().to_string() +
+            " span(s) as Protobuf",
+          )
+        } else {
+          // HTTP error response - already handled by HttpStatusError
+          self.logger.log(
+            "[OTLP] Export failed with status " +
+            response.status_code.to_string() +
+            ": " +
+            response.body,
+          )
+        }
+      Err(error) => {
+        // Classify and log error
+        let error_type = match error {
+          NetworkError(_) => "Network"
+          RequestError(_) => "Request"
+          HttpStatusError(_, _) => "HTTP Status"
+          InvalidResponse(_) => "Invalid Response"
+          TimeoutError(_) => "Timeout"
+          SecurityError(_) => "Security"
+        }
+        self.logger.log(
+          "[OTLP] " +
+          error_type +
+          " error: " +
+          error.to_string() +
+          (if error.is_retryable() { " (retryable)" } else { "" }),
+        )
+      }
+    }
+  } catch {
+    err =>
+      self.logger.log("[OTLP] HTTP Protobuf export error: " + err.to_string())
   }
 }
 
