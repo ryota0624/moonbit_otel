@@ -195,7 +195,7 @@ pub struct Span {
   droppedEventsCount : Int
   status : SpanStatus
   resource : Resource
-  pub tracer_identifier : TracerIdentifier
+  tracer_identifier : TracerIdentifier
 }
 
 ///|

@@ -202,7 +202,7 @@ pub struct Resource {
 } derive(ToJson)
 
 ///|
-impl Hash for Resource with hash_combine(self, hasher) {
+pub impl Hash for Resource with hash_combine(self, hasher) {
   self.attributes.map.each(fn(key, value) {
     hasher.combine_string(key)
     match value {
@@ -215,7 +215,7 @@ impl Hash for Resource with hash_combine(self, hasher) {
 }
 
 ///|
-impl Eq for Resource with equal(self, other : Resource) -> Bool {
+pub impl Eq for Resource with equal(self, other : Resource) -> Bool {
   if self.attributes.size() != other.attributes.size() {
     return false
   }
