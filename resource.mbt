@@ -209,8 +209,6 @@ pub fn Resource::to_protobuf(self : Resource) -> @resource.Resource {
     let key_value = @otel_common.KeyValue::{ key, value: any_value }
     resourece.attributes.push(key_value)
   })
-  println("Resource to_protobuf: " + resourece.attributes.to_string())
-  println("Resource to_protobuf: " + resourece.to_json().stringify())
   resourece
 }
 

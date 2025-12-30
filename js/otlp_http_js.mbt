@@ -121,14 +121,14 @@ extern "js" fn http_post_impl(
   #|     // Parse the request from MoonBit
   #|     const request = JSON.parse(requestJson);
   #|     const { url, http_method, headers, body } = request;
-  #|     console.log("requset body", body);
+  #|     console.log("requset body", body, headers);
   #|     // Set timeout for the fetch request
   #|     const controller = new AbortController();
   #|     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   #|     // Make the fetch request and return promise that resolves to JSON string
   #|     return fetch(url, {
   #|       method: http_method || "POST",
-  #|       headers: headers || { "Content-Type": "application/json" },
+  #|       headers: headers,
   #|       body: body,
   #|       signal: controller.signal,
   #|     })

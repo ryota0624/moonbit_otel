@@ -7,6 +7,7 @@ async fn main {
     json_provider,
     endpoint="http://192.168.0.9:4318/v1/traces",
   ).enable_debug_log(print=println)
+  run_example(json_config, print=println)
 
   // Using Protobuf format
   let protobuf_provider = @otel_js.protobuf_http_client_provider()
@@ -28,6 +29,7 @@ async fn main {
     json_provider,
     endpoint="http://192.168.0.9:4318/v1/traces",
   ).enable_debug_log(print=println)
+  run_example(json_config, print=println)
 
   // Using Protobuf format
   let protobuf_provider = @otel_native.protobuf_http_client_provider()
@@ -109,13 +111,13 @@ pub async fn run_example(
     .end(current_time_nanos())
 
   // ConsoleExporterの作成
-  let console_exporter = @otel.PrettyPrintExporter::new(print)
+  // let console_exporter = @otel.PrettyPrintExporter::new(print)
 
-  // Spanをコンソールにエクスポート
-  console_exporter.export_spans([parent_span, child_span])
+  // // Spanをコンソールにエクスポート
+  // console_exporter.export_spans([parent_span, child_span])
 
-  // ConsoleExporterをシャットダウン
-  console_exporter.shutdown()
+  // // ConsoleExporterをシャットダウン
+  // console_exporter.shutdown()
 
   // OTLPExporterの作成
   let otlp_exporter : &@otel.SpanExporter = @otel.OTLPExporter::new(otlp_config)

@@ -198,6 +198,11 @@ pub async fn OTLPExporter::export_spans_by_json_http_client(
   http_adaptor : HttpJsonSendAdaptor,
   spans : Array[Span],
 ) -> Unit {
+  self.logger.log(
+    "[OTLP] Starting export of " +
+    spans.length().to_string() +
+    " span(s) as JSON",
+  )
   try {
     let result = http_client.http_post_json(
       http_adaptor.endpoint,
@@ -252,6 +257,11 @@ pub async fn OTLPExporter::export_spans_by_protobuf_http_client(
   http_adaptor : HttpProtobufSendAdaptor,
   spans : Array[Span],
 ) -> Unit {
+  self.logger.log(
+    "[OTLP] Starting export of " +
+    spans.length().to_string() +
+    " span(s) as Protobuf",
+  )
   try {
     let result = http_client.http_post_protobuf(
       http_adaptor.endpoint,
