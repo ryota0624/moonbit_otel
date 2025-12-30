@@ -306,9 +306,9 @@ test "SpanBuilder creates span with attributes" {
   let tracer = Tracer::new("my-library", "1.0.0", resource, rand)
   let span = tracer
     .span_builder("http-request")
-    .with_kind(SpanKind::Client)
-    .with_attribute("http.url", AttributeValue::String("https://example.com"))
-    .with_attribute("http.status_code", AttributeValue::Int(200))
+    .kind(SpanKind::Client)
+    .attribute("http.url", AttributeValue::String("https://example.com"))
+    .attribute("http.status_code", AttributeValue::Int(200))
     .with_start_time(5000L)
     .start(tracer)
   assert_eq(span.name, "http-request")

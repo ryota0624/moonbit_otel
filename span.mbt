@@ -90,6 +90,7 @@ pub fn SpanContext::new(
   { trace_id, span_id, trace_flags, is_remote }
 }
 
+
 // Check if the span context is valid (non-zero IDs)
 
 ///|
@@ -162,7 +163,7 @@ pub impl ToJson for SpanStatus with to_json(self : SpanStatus) -> Json {
 pub struct SpanEvent {
   name : String
   timestamp : Int64 // Unix timestamp in nanoseconds
-  attributes : Map[String, AttributeValue]
+  attributes : Attributes
 } derive(ToJson)
 
 // Create a new SpanEvent
@@ -171,7 +172,7 @@ pub struct SpanEvent {
 pub fn SpanEvent::new(
   name : String,
   timestamp : Int64,
-  attributes : Map[String, AttributeValue],
+  attributes : Attributes,
 ) -> SpanEvent {
   { name, timestamp, attributes }
 }
@@ -440,6 +441,16 @@ pub fn Span::duration(self : Span) -> Int64? {
   }
 }
 
+
+pub fn Span::context(self : Span) -> SpanContext {
+  SpanContext::new(
+    self.traceId,
+    self.spanId,
+    self.flags,
+    false,
+  )
+}
+
 ///|
 #cfg(target="js")
 extern "js" fn js_date_now_double() -> Double =
@@ -455,6 +466,11 @@ pub fn get_current_time_ms() -> Int64 {
 #cfg(target="native")
 pub fn get_current_time_ms() -> Int64 {
   @async.now()
+}
+
+///|
+pub fn current_time_nanos() -> Int64 {
+  get_current_time_ms() * 1_000_000
 }
 
 // Helper function to generate a random hex string of given length

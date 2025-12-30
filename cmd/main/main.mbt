@@ -43,11 +43,6 @@ async fn main {
 }
 
 ///|
-fn current_time_nanos() -> Int64 {
-  @otel.get_current_time_ms() * 1_000_000
-}
-
-///|
 pub async fn run_example(
   otlp_config : @otel.OTLPExporterConfig,
   print~ : (String) -> Unit,
@@ -69,46 +64,53 @@ pub async fn run_example(
   // 親Spanの作成
   let parent_span = tracer
     .span_builder("http-request")
-    .with_kind(@otel.SpanKind::Server)
-    .with_attribute("http.method", @otel.AttributeValue::String("GET"))
-    .with_attribute("http.url", @otel.AttributeValue::String("/api/users"))
-    .with_attribute("http.status_code", @otel.AttributeValue::Int(200))
-    .with_start_time(current_time_nanos())
-    .start(tracer)
+    .kind(@otel.SpanKind::Server)
+    .attribute("http.method", @otel.AttributeValue::String("GET"))
+    .attribute("http.url", @otel.AttributeValue::String("/api/users"))
+    .attribute("http.status_code", @otel.AttributeValue::Int(200))
+    .attributes(
+      @otel.Attributes::default().with_string(
+        "http.user_agent", "Mozilla/5.0 (compatible; DemoClient/1.0)",
+      ),
+    )
+    .start_time(@otel.current_time_nanos())
+    .start()
 
   // イベントの追加
   let event = @otel.SpanEvent::new(
     "request_received",
-    current_time_nanos(),
-    Map::new(),
+    @otel.current_time_nanos(),
+    @otel.Attributes::default().with_string("some_key", "okay"),
   )
   let parent_span = parent_span.add_event(event)
 
   // 子Spanの作成
-  let parent_context = @otel.SpanContext::new(
-    parent_span.traceId,
-    parent_span.spanId,
-    parent_span.flags,
-    false,
-  )
+  let parent_context = parent_span.context()
   let child_span = tracer
     .span_builder("database-query")
-    .with_kind(@otel.SpanKind::Client)
-    .with_parent(parent_context)
-    .with_attribute("db.system", @otel.AttributeValue::String("postgresql"))
-    .with_attribute(
+    .kind(@otel.SpanKind::Client)
+    .parent(parent_context)
+    // .parent(parent_span)
+    .attribute("db.system", @otel.AttributeValue::String("postgresql"))
+    .attribute(
       "db.statement",
       @otel.AttributeValue::String("SELECT * FROM users"),
     )
-    .with_start_time(current_time_nanos())
-    .start(tracer)
+    .start_time(@otel.current_time_nanos())
+    .start()
     .set_status(@otel.SpanStatus::Ok)
-    .end(current_time_nanos())
+    .end(@otel.current_time_nanos() + 5000000)
+  let child_span = child_span.add_event(
+    tracer.span_event(
+      "query_executed",
+      attributes=@otel.Attributes::default().with_int("rows_returned", 42),
+    ),
+  )
 
   // 親Spanを終了
   let parent_span = parent_span
     .set_status(@otel.SpanStatus::Ok)
-    .end(current_time_nanos())
+    .end(@otel.current_time_nanos() + 10000000)
 
   // ConsoleExporterの作成
   let console_exporter = @otel.PrettyPrintExporter::new(print)
