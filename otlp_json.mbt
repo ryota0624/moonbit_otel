@@ -9,6 +9,18 @@ struct OtlpResourceSpans {
 } derive(ToJson)
 
 ///|
+fn OtlpResourceSpans::to_protobuf(
+  self : OtlpResourceSpans,
+) -> @trace.TracesData {
+  let otlp_td = @trace.TracesData::default()
+  otlp_td.resource_spans = []
+  for rs in self.resourceSpans {
+    otlp_td.resource_spans.push(rs.to_protobuf())
+  }
+  otlp_td
+}
+
+///|
 struct OtlpResourceSpan {
   resource : Resource
   scopeSpans : Array[OtlpScopeSpan]
@@ -106,7 +118,7 @@ pub fn spans_to_resource_spans_protobuf_bytes(spans : Array[Span]) -> Bytes {
     otlp_rs.resource = resource.to_protobuf()
     otlp_rs.scope_spans = []
   }
-  let p_resource = otlp.resourceSpans[0].to_protobuf()
+  let p_resource = otlp.to_protobuf()
   let buffer = @buffer.new()
   p_resource.write(buffer) catch {
     e => {

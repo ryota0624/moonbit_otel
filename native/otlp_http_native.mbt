@@ -10,7 +10,7 @@ pub fn http_client_provider() -> &@lib.HttpClientProvider {
 impl @lib.HttpClient for HttpClientOnAsyncHttp with http_post_json(
   _ : HttpClientOnAsyncHttp,
   url : String,
-  body : String,
+  body : Bytes,
   headers : Map[String, String],
 ) -> Result[@lib.HttpResponse, @lib.HttpError] {
   @async.with_timeout(5000, async fn() {

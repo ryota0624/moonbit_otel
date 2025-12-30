@@ -141,9 +141,9 @@ pub(all) enum SpanStatus {
 ///|
 pub impl ToJson for SpanStatus with to_json(self : SpanStatus) -> Json {
   let status_code = match self {
-    SpanStatus::Unset => 0
-    SpanStatus::Ok => 1
-    SpanStatus::Error => 2
+    SpanStatus::Unset => "STATUS_CODE_UNSET"
+    SpanStatus::Ok => "STATUS_CODE_OK"
+    SpanStatus::Error => "STATUS_CODE_ERROR"
   }
   let message = match self {
     SpanStatus::Unset => "Unset"
@@ -151,7 +151,7 @@ pub impl ToJson for SpanStatus with to_json(self : SpanStatus) -> Json {
     SpanStatus::Error => "Error"
   }
   Json::object({
-    "code": Json::number(status_code.to_double()),
+    "code": Json::string(status_code.to_double()),
     "message": Json::string(message),
   })
 }
@@ -234,113 +234,52 @@ pub fn char_to_int(c : Char) -> Int? {
 
 ///|
 impl ToJson for Span with to_json(self : Span) -> Json {
-  let p_span = @trace.Span::default()
-  p_span.trace_id = hex_to_bytes(self.traceId.value).unwrap()
-  p_span.span_id = hex_to_bytes(self.spanId.value).unwrap()
-
-  // p_span.span_id = self.spanId.value
-  match self.parentSpanId {
-    Some(id) => p_span.parent_span_id = hex_to_bytes(id.value).unwrap()
-    None => ()
-  }
-  p_span.trace_state = self.traceState
-  p_span.name = self.name
-  p_span.kind = match self.kind {
-    SpanKind::Unspecified => @trace.Span_SpanKind::SPAN_KIND_UNSPECIFIED
-    SpanKind::Internal => @trace.Span_SpanKind::SPAN_KIND_INTERNAL
-    SpanKind::Server => @trace.Span_SpanKind::SPAN_KIND_SERVER
-    SpanKind::Client => @trace.Span_SpanKind::SPAN_KIND_CLIENT
-    SpanKind::Producer => @trace.Span_SpanKind::SPAN_KIND_PRODUCER
-    SpanKind::Consumer => @trace.Span_SpanKind::SPAN_KIND_CONSUMER
-  }
-  p_span.start_time_unix_nano = self.startTimeUnixNano.reinterpret_as_uint64()
-  match self.endTimeUnixNano {
-    Some(end) => p_span.end_time_unix_nano = end.reinterpret_as_uint64()
-    None => ()
-  }
-  p_span.flags = self.flags.reinterpret_as_uint()
-  p_span.status = match self.status {
-    SpanStatus::Unset =>
-      @trace.Status::{
-        code: @trace.Status_StatusCode::STATUS_CODE_UNSET,
-        message: "unset",
-      }
-    SpanStatus::Ok =>
-      @trace.Status::{
-        code: @trace.Status_StatusCode::STATUS_CODE_OK,
-        message: "ok",
-      }
-    SpanStatus::Error =>
-      @trace.Status::{
-        code: @trace.Status_StatusCode::STATUS_CODE_ERROR,
-        message: "error",
-      }
-  }
-  // Note: Attributes and Events serialization is omitted for brevity
-  let j = p_span.to_json()
-  println(self.traceId.value)
-  j
-  .as_object()
-  .unwrap()
-  .each(fn(k, v) { if k == "traceId" { println(k + ": " + v.to_string()) } })
-  println(j)
-  j
   // OTLP JSON format requires hex-encoded traceId and spanId (not base64!)
-  // let json_obj : Map[String, Json] = {}
+  let json_obj : Map[String, Json] = {}
 
-  // // Required fields with hex encoding (lowercase)
-  // json_obj["traceId"] = Json::string(self.traceId.value)
-  // json_obj["spanId"] = Json::string(self.spanId.value)
+  // Required fields with hex encoding (lowercase)
+  json_obj["traceId"] = Json::string(self.traceId.value)
+  json_obj["spanId"] = Json::string(self.spanId.value)
 
-  // // Optional parent span ID
-  // match self.parentSpanId {
-  //   Some(id) => json_obj["parentSpanId"] = Json::string(id.value)
-  //   None => ()
-  // }
+  // Optional parent span ID
+  match self.parentSpanId {
+    Some(id) => json_obj["parentSpanId"] = Json::string(id.value)
+    None => ()
+  }
 
-  // // Trace state
-  // if self.traceState != "" {
-  //   json_obj["traceState"] = Json::string(self.traceState)
-  // }
+  // Trace state
+  if self.traceState != "" {
+    json_obj["traceState"] = Json::string(self.traceState)
+  }
 
-  // // Span name and kind
-  // json_obj["name"] = Json::string(self.name)
-  // json_obj["kind"] = @trace.Span_SpanKind::to_string(
-  //   match self.kind {
-  //     SpanKind::Unspecified => @trace.Span_SpanKind::SPAN_KIND_UNSPECIFIED
-  //     SpanKind::Internal => @trace.Span_SpanKind::SPAN_KIND_INTERNAL
-  //     SpanKind::Server => @trace.Span_SpanKind::SPAN_KIND_SERVER
-  //     SpanKind::Client => @trace.Span_SpanKind::SPAN_KIND_CLIENT
-  //     SpanKind::Producer => @trace.Span_SpanKind::SPAN_KIND_PRODUCER
-  //     SpanKind::Consumer => @trace.Span_SpanKind::SPAN_KIND_CONSUMER
-  //   },
-  // ).to_json()
+  // Span name and kind
+  json_obj["name"] = Json::string(self.name)
+  json_obj["kind"] = @trace.Span_SpanKind::to_string(
+    match self.kind {
+      SpanKind::Unspecified => @trace.Span_SpanKind::SPAN_KIND_UNSPECIFIED
+      SpanKind::Internal => @trace.Span_SpanKind::SPAN_KIND_INTERNAL
+      SpanKind::Server => @trace.Span_SpanKind::SPAN_KIND_SERVER
+      SpanKind::Client => @trace.Span_SpanKind::SPAN_KIND_CLIENT
+      SpanKind::Producer => @trace.Span_SpanKind::SPAN_KIND_PRODUCER
+      SpanKind::Consumer => @trace.Span_SpanKind::SPAN_KIND_CONSUMER
+    },
+  ).to_json()
 
-  // // Timestamps as strings
-  // json_obj["startTimeUnixNano"] = Json::string(
-  //   self.startTimeUnixNano.to_string(),
-  // )
-  // match self.endTimeUnixNano {
-  //   Some(end) => json_obj["endTimeUnixNano"] = Json::string(end.to_string())
-  //   None => ()
-  // }
+  // Timestamps as strings
+  json_obj["startTimeUnixNano"] = Json::string(
+    self.startTimeUnixNano.to_string(),
+  )
+  match self.endTimeUnixNano {
+    Some(end) => json_obj["endTimeUnixNano"] = Json::string(end.to_string())
+    None => ()
+  }
 
-  // // Flags
-  // if self.flags != 0 {
-  //   json_obj["flags"] = Json::number(self.flags.to_double())
-  // }
-
-  // // Status
-  // let status_json : Map[String, Json] = {}
-  // status_json["code"] = Json::string(
-  //   match self.status {
-  //     SpanStatus::Unset => "STATUS_CODE_UNSET"
-  //     SpanStatus::Ok => "STATUS_CODE_OK"
-  //     SpanStatus::Error => "STATUS_CODE_ERROR"
-  //   },
-  // )
-  // json_obj["status"] = Json::object(status_json)
-  // Json::object(json_obj)
+  // Flags
+  if self.flags != 0 {
+    json_obj["flags"] = Json::number(self.flags.to_double())
+  }
+  json_obj["status"] = self.status.to_json()
+  Json::object(json_obj)
 }
 
 ///|

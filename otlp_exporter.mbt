@@ -56,7 +56,7 @@ pub(open) trait HttpClient {
   async http_post_json(
     Self,
     url : String,
-    body : String,
+    body : Bytes,
     headers : Map[String, String],
   ) -> Result[HttpResponse, HttpError]
 }
@@ -124,23 +124,24 @@ pub async fn OTLPExporter::export_spans(
   if spans.length() == 0 {
     return
   }
-
-  // Convert spans to OTLP JSON format
-  let json_body = spans_to_resource_spans_json(spans)
   let adaptor = self.export_adapter
   match adaptor {
     ExportAdapter::Http(http_adaptor) => {
+      let raw_bytes_body = spans_to_resource_spans_protobuf_bytes(spans)
       let client = http_adaptor.client_provider.get_client()
-      self.export_spans_by_http_client(json_body, client, http_adaptor, spans)
+      self.export_spans_by_http_client(
+        raw_bytes_body, client, http_adaptor, spans,
+      )
     }
-    ExportAdapter::Stdout(stdout_adaptor) => (stdout_adaptor.print)(json_body)
+    ExportAdapter::Stdout(stdout_adaptor) =>
+      (stdout_adaptor.print)(spans_to_resource_spans_json(spans))
   }
 }
 
 ///|
 pub async fn OTLPExporter::export_spans_by_http_client(
   self : OTLPExporter,
-  json_body : String,
+  json_body : Bytes,
   http_client : &HttpClient,
   http_adaptor : HttpSendAdaptor,
   spans : Array[Span],
@@ -149,7 +150,7 @@ pub async fn OTLPExporter::export_spans_by_http_client(
     let result = http_client.http_post_json(
       http_adaptor.endpoint,
       json_body,
-      http_adaptor.headers.merge({ "Content-Type": "application/json" }),
+      http_adaptor.headers.merge({ "Content-Type": "application/x-protobuf" }),
     )
     match result {
       Ok(response) =>
