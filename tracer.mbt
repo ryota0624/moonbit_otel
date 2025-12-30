@@ -100,7 +100,7 @@ pub fn Tracer::with_config(
 
 ///|
 pub fn Tracer::span_builder(self : Tracer, name : String) -> SpanBuilder {
-  SpanBuilder::new(name, self.config.get_current_time_nanos)
+  SpanBuilder::new(name, self.resource, self.identifier, self.config)
 }
 
 // Convenience method to start a span directly
@@ -112,14 +112,17 @@ pub fn Tracer::start_span(
   kind : SpanKind,
   parent : SpanContext?,
 ) -> Span {
-  let builder = SpanBuilder::new(name, self.config.get_current_time_nanos).kind(
-    kind,
-  )
+  let builder = SpanBuilder::new(
+    name,
+    self.resource,
+    self.identifier,
+    self.config,
+  ).kind(kind)
   let builder_with_parent = match parent {
     Some(p) => builder.parent(p)
     None => builder
   }
-  builder_with_parent.start(self)
+  builder_with_parent.start()
 }
 
 ///|
