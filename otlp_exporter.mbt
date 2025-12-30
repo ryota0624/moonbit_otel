@@ -179,7 +179,14 @@ pub async fn OTLPExporter::export_spans(
       )
     }
     ExportAdapter::HttpProtobuf(http_adaptor) => {
-      let protobuf_body = spans_to_resource_spans_protobuf_bytes(spans)
+      let protobuf_body = spans_to_resource_spans_protobuf_bytes(spans) catch {
+        err => {
+          self.logger.log(
+            "[OTLP] Failed to serialize spans to Protobuf: " + err.to_string(),
+          )
+          return
+        }
+      }
       let client = http_adaptor.client_provider.get_protobuf_client()
       self.export_spans_by_protobuf_http_client(
         protobuf_body, client, http_adaptor, spans,

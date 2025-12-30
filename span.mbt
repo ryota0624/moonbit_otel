@@ -326,7 +326,29 @@ pub fn Span::to_protobuf(self : Span) -> @trace.Span {
         message: "error",
       }
   }
-  // Note: Attributes and Events serialization is omitted for brevity
+
+  // Serialize attributes
+  p_span.attributes = []
+  self.attributes.map.each(fn(key, value) {
+    let any_value = value.to_protobuf()
+    let key_value = @otel_common.KeyValue::{ key, value: any_value }
+    p_span.attributes.push(key_value)
+  })
+
+  // Serialize events
+  p_span.events = []
+  for event in self.events {
+    let p_event = @trace.Span_Event::default()
+    p_event.time_unix_nano = event.timestamp.reinterpret_as_uint64()
+    p_event.name = event.name
+    p_event.attributes = []
+    event.attributes.each(fn(key, value) {
+      let any_value = value.to_protobuf()
+      let key_value = @otel_common.KeyValue::{ key, value: any_value }
+      p_event.attributes.push(key_value)
+    })
+    p_span.events.push(p_event)
+  }
   p_span
 }
 

@@ -1,3 +1,5 @@
+/// TODO: 適切ファイルへ切り出し移動
+
 // OTLP JSON serialization functions for converting MoonBit span structures
 // to OpenTelemetry Protocol JSON format
 
@@ -64,12 +66,6 @@ struct OtlpScope {
 } derive(ToJson)
 
 // Serialize a single Span to OTLP JSON format using ToJson
-
-///|
-pub fn span_to_json(span : Span) -> String {
-  span.to_json().stringify()
-}
-
 // Serialize an array of Spans to OTLP resourceSpans JSON format
 
 ///|
@@ -96,7 +92,9 @@ pub fn spans_to_resource_spans_json(spans : Array[Span]) -> String {
 // Serialize an array of Spans to OTLP resourceSpans JSON format
 
 ///|
-pub fn spans_to_resource_spans_protobuf_bytes(spans : Array[Span]) -> Bytes {
+pub fn spans_to_resource_spans_protobuf_bytes(
+  spans : Array[Span],
+) -> Bytes raise {
   if spans.length() == 0 {
     return Bytes::new(0)
   }
@@ -117,11 +115,7 @@ pub fn spans_to_resource_spans_protobuf_bytes(spans : Array[Span]) -> Bytes {
   let traces_data = otlp.to_protobuf()
   let buffer = @buffer.new()
   traces_data.write(buffer) catch {
-    e => {
-      // Handle serialization error
-      println("Error serializing spans to Protobuf: " + e.to_string())
-      panic()
-    }
+    e => raise Failure("Protobuf serialization failed: " + e.to_string())
   }
   buffer.to_bytes()
 }
