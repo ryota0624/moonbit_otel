@@ -110,7 +110,7 @@ pub fn Tracer::start_span(
   self : Tracer,
   name : String,
   kind : SpanKind,
-  parent : SpanContext?,
+  parent : &SpanContextExtractable?,
 ) -> Span {
   let builder = SpanBuilder::new(
     name,
