@@ -25,14 +25,18 @@ pub impl SpanExporter for PrettyPrintExporter with export_spans(
 }
 
 ///|
-pub impl SpanExporter for PrettyPrintExporter with shutdown(self : PrettyPrintExporter) -> Unit {
+pub impl SpanExporter for PrettyPrintExporter with shutdown(
+  self : PrettyPrintExporter,
+) -> Unit {
   self.shutdown()
 }
 
 // ConsoleExporterの作成
 
 ///|
-pub fn PrettyPrintExporter::new(print : (String) -> Unit) -> PrettyPrintExporter {
+pub fn PrettyPrintExporter::new(
+  print : (String) -> Unit,
+) -> PrettyPrintExporter {
   { print_fn: print }
 }
 
@@ -63,7 +67,7 @@ fn format_span(span : Span) -> String {
   output = output + "  SpanID: " + span.spanId.to_string() + "\n"
 
   // 親SpanIDの表示
-  match span.parentSpanId {
+  match span.parent_span_id {
     Some(parent_id) =>
       output = output + "  ParentSpanID: " + parent_id.to_string() + "\n"
     None => ()
@@ -72,7 +76,7 @@ fn format_span(span : Span) -> String {
   output = output + "  Status: " + span.status.to_string() + "\n"
   output = output +
     "  StartTime: " +
-    span.startTimeUnixNano.to_string() +
+    span.start_time_unix_nano.to_string() +
     "ns\n"
 
   // 期間の表示

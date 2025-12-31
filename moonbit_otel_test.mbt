@@ -157,7 +157,7 @@ test "Resource can store multiple attribute types" {
 test "SpanContext::new creates a valid span context" {
   let trace_id = TraceID::new("12345678901234567890123456789012")
   let span_id = SpanID::new("1234567890123456")
-  let ctx = SpanContext::new(trace_id, span_id, 0x01, false)
+  let ctx = SpanContext::new(trace_id, span_id, TraceFlags::sampled(), false)
   assert_true(ctx.is_valid())
   assert_true(ctx.is_sampled())
   assert_eq(ctx.trace_id.to_string(), "12345678901234567890123456789012")
@@ -168,7 +168,7 @@ test "SpanContext::new creates a valid span context" {
 test "SpanContext::is_valid returns false for zero IDs" {
   let trace_id = TraceID::new("00000000000000000000000000000000")
   let span_id = SpanID::new("0000000000000000")
-  let ctx = SpanContext::new(trace_id, span_id, 0x00, false)
+  let ctx = SpanContext::new(trace_id, span_id, TraceFlags::sampled(), false)
   assert_false(ctx.is_valid())
 }
 
@@ -192,7 +192,7 @@ test "Span::new creates a new span" {
   let ctx = SpanContext::new(
     generate_trace_id(rand),
     generate_span_id(rand),
-    0x01,
+    TraceFlags::sampled(),
     false,
   )
   let resource = Resource::empty().with_string(service_name, "test-service")
@@ -207,7 +207,7 @@ test "Span::new creates a new span" {
   )
   assert_eq(span.name, "test-span")
   assert_eq(span.kind, SpanKind::Internal)
-  assert_eq(span.startTimeUnixNano, 1000L)
+  assert_eq(span.start_time_unix_nano, 1000L)
   assert_false(span.is_ended())
 }
 
@@ -226,7 +226,7 @@ test "Span::set_attribute adds an attribute" {
 ///|
 test "Span::add_event adds an event to the span" {
   let span = create_test_span()
-  let event = SpanEvent::new("error", 2000L, Map::new())
+  let event = SpanEvent::new("error", 2000L, Attributes::empty())
   let span_with_event = span.add_event(event)
   assert_eq(span_with_event.events.length(), 1)
   assert_eq(span_with_event.events[0].name, "error")
@@ -236,7 +236,12 @@ test "Span::add_event adds an event to the span" {
 test "Span::end marks the span as ended" {
   let trace_id = TraceID::new("5b8efff798038103d269b633813fc60c")
   let span_id = SpanID::new("eee19b7ec3c1b174")
-  let context = SpanContext::new(trace_id, span_id, 1, false)
+  let context = SpanContext::new(
+    trace_id,
+    span_id,
+    TraceFlags::sampled(),
+    false,
+  )
   let tracer_identifier = TracerIdentifier::new("test-tracer", "1.0.0")
   let resource = Resource::empty()
   let span = Span::new(
@@ -287,7 +292,7 @@ test "Tracer creates child span with parent context" {
   let parent_context = SpanContext::new(
     parent_span.traceId,
     parent_span.spanId,
-    parent_span.flags,
+    parent_span.trace_flags,
     false,
   )
   let child_span = tracer.start_span(
@@ -296,7 +301,7 @@ test "Tracer creates child span with parent context" {
     Some(parent_context),
   )
   assert_eq(child_span.traceId, parent_span.traceId)
-  assert_eq(child_span.parentSpanId, Some(parent_span.spanId))
+  assert_eq(child_span.parent_span_id, Some(parent_span.spanId))
 }
 
 ///|
@@ -309,11 +314,11 @@ test "SpanBuilder creates span with attributes" {
     .kind(SpanKind::Client)
     .attribute("http.url", AttributeValue::String("https://example.com"))
     .attribute("http.status_code", AttributeValue::Int(200))
-    .with_start_time(5000L)
-    .start(tracer)
+    .start_time(5000L)
+    .start()
   assert_eq(span.name, "http-request")
   assert_eq(span.kind, SpanKind::Client)
-  assert_eq(span.startTimeUnixNano, 5000L)
+  assert_eq(span.start_time_unix_nano, 5000L)
   assert_eq(
     span.attributes.get("http.url"),
     Some(AttributeValue::String("https://example.com")),

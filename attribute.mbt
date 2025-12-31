@@ -66,6 +66,7 @@ impl ToJson for Attributes with to_json(self : Attributes) -> Json {
   .to_json()
 }
 
+///|
 pub impl Default for Attributes with default() -> Attributes {
   Attributes::new()
 }
@@ -205,4 +206,18 @@ pub fn Attributes::each(
 pub fn Attributes::merge(self : Attributes, other : Attributes) -> Attributes {
   let new_map = self.map.merge(other.map)
   { map: new_map }
+}
+
+///|
+pub fn Attributes::to_protobuf(
+  self : Attributes,
+) -> Array[@otel_common.KeyValue] {
+  self.map
+  .iterator()
+  .map(fn(kv) {
+    let key = kv.0
+    let value = kv.1
+    @otel_common.KeyValue::{ key, value: value.to_protobuf() }
+  })
+  .to_array()
 }

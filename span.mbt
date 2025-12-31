@@ -67,6 +67,107 @@ pub fn SpanID::is_valid(self : SpanID) -> Bool {
   self.value != "0000000000000000"
 }
 
+///|
+pub struct TraceState {
+  priv map : Map[String, String]
+} derive(Eq, Show)
+
+///|
+pub fn TraceState::to_http_header(self : TraceState) -> String {
+  self.map
+  .iterator()
+  .map(fn(kv) {
+    let key = kv.0
+    let value = kv.1
+    key + "=" + value
+  })
+  .join(",")
+}
+
+///|
+impl Default for TraceState with default() -> TraceState {
+  TraceState::{ map: Default::default() }
+}
+
+///|
+impl ToJson for TraceState with to_json(self : TraceState) -> Json {
+  Json::string(self.to_http_header())
+}
+
+///|
+pub fn TraceState::parse(value : String) -> TraceState raise {
+  value
+  .split(",")
+  .fold(init=TraceState::default(), fn(
+    acc : TraceState,
+    pair,
+  ) -> TraceState raise {
+    let parts = pair.split("=").to_array()
+    if parts.length() != 2 {
+      fail("Invalid trace state entry: " + pair.to_string())
+    }
+    let key = parts[0].trim()
+    let val = parts[1].trim()
+    let new_map = acc.map.copy()
+    new_map.set(key.to_string(), val.to_string())
+    { map: new_map }
+  })
+}
+
+///|
+pub fn TraceState::delete(self : TraceState, key : String) -> TraceState {
+  let new_map = self.map.copy()
+  new_map.remove(key)
+  { map: new_map }
+}
+
+///|
+pub fn TraceState::insert(
+  self : TraceState,
+  key : String,
+  value : String,
+) -> TraceState raise {
+  // TODO: check value validity
+  let new_map = self.map.copy()
+  new_map.set(key, value)
+  { map: new_map }
+}
+
+///|
+pub fn TraceState::get(self : TraceState, key : String) -> String? {
+  self.map.get(key)
+}
+
+///|
+pub fn TraceState::to_map(self : TraceState) -> Map[String, String] {
+  self.map.copy()
+}
+
+///|
+pub struct TraceFlags {
+  priv value : Byte
+} derive(Eq, Show)
+
+///|
+impl ToJson for TraceFlags with to_json(self : TraceFlags) -> Json {
+  Json::number(self.value.to_double())
+}
+
+///|
+pub fn TraceFlags::is_sampled(self : TraceFlags) -> Bool {
+  (self.value & 0x01) != 0
+}
+
+///|
+fn TraceFlags::to_uint(self : TraceFlags) -> UInt {
+  self.value.to_uint()
+}
+
+///|
+pub fn TraceFlags::sampled() -> TraceFlags {
+  { value: 0x01 }
+}
+
 // SpanContext represents the portion of a Span which must be serialized and
 // propagated along side of a distributed context.
 
@@ -74,7 +175,7 @@ pub fn SpanID::is_valid(self : SpanID) -> Bool {
 pub struct SpanContext {
   trace_id : TraceID
   span_id : SpanID
-  trace_flags : Int
+  trace_flags : TraceFlags
   is_remote : Bool
 } derive(ToJson)
 
@@ -84,12 +185,11 @@ pub struct SpanContext {
 pub fn SpanContext::new(
   trace_id : TraceID,
   span_id : SpanID,
-  trace_flags : Int,
+  trace_flags : TraceFlags,
   is_remote : Bool,
 ) -> SpanContext {
   { trace_id, span_id, trace_flags, is_remote }
 }
-
 
 // Check if the span context is valid (non-zero IDs)
 
@@ -102,7 +202,7 @@ pub fn SpanContext::is_valid(self : SpanContext) -> Bool {
 
 ///|
 pub fn SpanContext::is_sampled(self : SpanContext) -> Bool {
-  (self.trace_flags & 0x01) != 0
+  self.trace_flags.is_sampled()
 }
 
 // SpanKind describes the relationship between the Span, its parents, and its children
@@ -177,23 +277,32 @@ pub fn SpanEvent::new(
   { name, timestamp, attributes }
 }
 
+///|
+pub fn SpanEvent::to_protobuf(self : SpanEvent) -> @trace.Span_Event {
+  let p_event = @trace.Span_Event::default()
+  p_event.time_unix_nano = self.timestamp.reinterpret_as_uint64()
+  p_event.name = self.name
+  p_event.attributes = self.attributes.to_protobuf()
+  p_event
+}
+
 // Span represents a single operation within a trace
 
 ///|
 pub struct Span {
   traceId : TraceID
   spanId : SpanID
-  traceState : String
-  parentSpanId : SpanID?
-  flags : Int
+  trace_state : TraceState
+  parent_span_id : SpanID?
+  trace_flags : TraceFlags
   name : String
   kind : SpanKind
-  startTimeUnixNano : Int64
-  endTimeUnixNano : Int64?
+  start_time_unix_nano : Int64
+  end_time_unix_nano : Int64?
   attributes : Attributes
-  droppedAttributesCount : Int
+  dropped_attributes_count : Int
   events : Array[SpanEvent]
-  droppedEventsCount : Int
+  dropped_events_count : Int
   status : SpanStatus
   resource : Resource
   tracer_identifier : TracerIdentifier
@@ -244,15 +353,13 @@ impl ToJson for Span with to_json(self : Span) -> Json {
   json_obj["spanId"] = Json::string(self.spanId.value)
 
   // Optional parent span ID
-  match self.parentSpanId {
+  match self.parent_span_id {
     Some(id) => json_obj["parentSpanId"] = Json::string(id.value)
     None => ()
   }
 
   // Trace state
-  if self.traceState != "" {
-    json_obj["traceState"] = Json::string(self.traceState)
-  }
+  json_obj["traceState"] = self.trace_state.to_json()
 
   // Span name and kind
   json_obj["name"] = Json::string(self.name)
@@ -269,16 +376,16 @@ impl ToJson for Span with to_json(self : Span) -> Json {
 
   // Timestamps as strings
   json_obj["startTimeUnixNano"] = Json::string(
-    self.startTimeUnixNano.to_string(),
+    self.start_time_unix_nano.to_string(),
   )
-  match self.endTimeUnixNano {
+  match self.end_time_unix_nano {
     Some(end) => json_obj["endTimeUnixNano"] = Json::string(end.to_string())
     None => ()
   }
 
   // Flags
-  if self.flags != 0 {
-    json_obj["flags"] = Json::number(self.flags.to_double())
+  if self.trace_flags.is_sampled() {
+    json_obj["flags"] = self.trace_flags.to_json()
   }
   json_obj["status"] = self.status.to_json()
   Json::object(json_obj)
@@ -291,11 +398,11 @@ pub fn Span::to_protobuf(self : Span) -> @trace.Span {
   p_span.span_id = hex_to_bytes(self.spanId.value).unwrap()
 
   // p_span.span_id = self.spanId.value
-  match self.parentSpanId {
+  match self.parent_span_id {
     Some(id) => p_span.parent_span_id = hex_to_bytes(id.value).unwrap()
     None => ()
   }
-  p_span.trace_state = self.traceState
+  p_span.trace_state = self.trace_state.to_http_header()
   p_span.name = self.name
   p_span.kind = match self.kind {
     SpanKind::Unspecified => @trace.Span_SpanKind::SPAN_KIND_UNSPECIFIED
@@ -305,12 +412,12 @@ pub fn Span::to_protobuf(self : Span) -> @trace.Span {
     SpanKind::Producer => @trace.Span_SpanKind::SPAN_KIND_PRODUCER
     SpanKind::Consumer => @trace.Span_SpanKind::SPAN_KIND_CONSUMER
   }
-  p_span.start_time_unix_nano = self.startTimeUnixNano.reinterpret_as_uint64()
-  match self.endTimeUnixNano {
+  p_span.start_time_unix_nano = self.start_time_unix_nano.reinterpret_as_uint64()
+  match self.end_time_unix_nano {
     Some(end) => p_span.end_time_unix_nano = end.reinterpret_as_uint64()
     None => ()
   }
-  p_span.flags = self.flags.reinterpret_as_uint()
+  p_span.flags = self.trace_flags.to_uint()
   p_span.status = match self.status {
     SpanStatus::Unset =>
       @trace.Status::{
@@ -330,27 +437,10 @@ pub fn Span::to_protobuf(self : Span) -> @trace.Span {
   }
 
   // Serialize attributes
-  p_span.attributes = []
-  self.attributes.map.each(fn(key, value) {
-    let any_value = value.to_protobuf()
-    let key_value = @otel_common.KeyValue::{ key, value: any_value }
-    p_span.attributes.push(key_value)
-  })
+  p_span.attributes = self.attributes.to_protobuf()
 
   // Serialize events
-  p_span.events = []
-  for event in self.events {
-    let p_event = @trace.Span_Event::default()
-    p_event.time_unix_nano = event.timestamp.reinterpret_as_uint64()
-    p_event.name = event.name
-    p_event.attributes = []
-    event.attributes.each(fn(key, value) {
-      let any_value = value.to_protobuf()
-      let key_value = @otel_common.KeyValue::{ key, value: any_value }
-      p_event.attributes.push(key_value)
-    })
-    p_span.events.push(p_event)
-  }
+  p_span.events = self.events.map(e => e.to_protobuf())
   p_span
 }
 
@@ -369,18 +459,18 @@ pub fn Span::new(
   {
     traceId: context.trace_id,
     spanId: context.span_id,
-    traceState: "",
-    parentSpanId: parent_span_id,
-    flags: context.trace_flags,
+    trace_state: Default::default(),
+    parent_span_id,
+    trace_flags: context.trace_flags,
     name,
     kind,
-    startTimeUnixNano: start_time,
-    endTimeUnixNano: None,
+    start_time_unix_nano: start_time,
+    end_time_unix_nano: None,
     status: SpanStatus::Unset,
     attributes: Attributes::new(),
-    droppedAttributesCount: 0,
+    dropped_attributes_count: 0,
     events: [],
-    droppedEventsCount: 0,
+    dropped_events_count: 0,
     resource,
     tracer_identifier,
   }
@@ -402,12 +492,7 @@ pub fn Span::set_attribute(
 
 ///|
 pub fn Span::add_event(self : Span, event : SpanEvent) -> Span {
-  let new_events = Array::new(capacity=self.events.length() + 1)
-  for i = 0; i < self.events.length(); i = i + 1 {
-    new_events.push(self.events[i])
-  }
-  new_events.push(event)
-  { ..self, events: new_events }
+  { ..self, events: [..self.events, event] }
 }
 
 // Set the status of the Span
@@ -421,34 +506,29 @@ pub fn Span::set_status(self : Span, status : SpanStatus) -> Span {
 
 ///|
 pub fn Span::end(self : Span, end_time : Int64) -> Span {
-  { ..self, endTimeUnixNano: Some(end_time) }
+  { ..self, end_time_unix_nano: Some(end_time) }
 }
 
 // Check if the Span has ended
 
 ///|
 pub fn Span::is_ended(self : Span) -> Bool {
-  self.endTimeUnixNano is Some(_)
+  self.end_time_unix_nano is Some(_)
 }
 
 // Get the duration of the Span in nanoseconds (returns None if not ended)
 
 ///|
 pub fn Span::duration(self : Span) -> Int64? {
-  match self.endTimeUnixNano {
-    Some(end) => Some(end - self.startTimeUnixNano)
+  match self.end_time_unix_nano {
+    Some(end) => Some(end - self.start_time_unix_nano)
     None => None
   }
 }
 
-
+///|
 pub fn Span::context(self : Span) -> SpanContext {
-  SpanContext::new(
-    self.traceId,
-    self.spanId,
-    self.flags,
-    false,
-  )
+  SpanContext::new(self.traceId, self.spanId, self.trace_flags, false)
 }
 
 ///|

@@ -117,7 +117,7 @@ pub fn SpanBuilder::start(self : SpanBuilder) -> Span {
   // Inherit trace flags from parent or default to sampled
   let trace_flags = match self.parent_context {
     Some(parent) => parent.trace_flags
-    None => 0x01 // Sampled by default
+    None => TraceFlags::sampled() // Sampled by default
   }
   let context = SpanContext::new(trace_id, span_id, trace_flags, false)
   let start_time = match self.start_time {

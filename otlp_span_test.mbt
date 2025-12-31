@@ -21,7 +21,7 @@ fn create_test_span_context(
 ) -> SpanContext {
   let trace_id = TraceID::new(trace_id_hex)
   let span_id = SpanID::new(span_id_hex)
-  SpanContext::new(trace_id, span_id, 1, false)
+  SpanContext::new(trace_id, span_id, TraceFlags::sampled(), false)
 }
 
 ///|
@@ -77,9 +77,9 @@ fn create_span_with_attributes(name : String) -> Span {
 ///|
 fn create_span_with_events(name : String) -> Span {
   let span = create_basic_span(name)
-  let event_attrs : Map[String, AttributeValue] = Map::new()
-  event_attrs.set("event.type", AttributeValue::String("error"))
-  event_attrs.set("event.message", AttributeValue::String("Connection timeout"))
+  let event_attrs = Attributes::default()
+    .set("event.type", AttributeValue::String("error"))
+    .set("event.message", AttributeValue::String("Connection timeout"))
   let event = SpanEvent::new("error-occurred", 1000000L, event_attrs)
   span.add_event(event)
 }

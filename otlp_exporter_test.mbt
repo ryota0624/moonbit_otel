@@ -27,7 +27,12 @@ test "SpanKind serializes via ToJson" {
 fn create_test_span() -> Span {
   let trace_id = TraceID::new("5b8efff798038103d269b633813fc60c")
   let span_id = SpanID::new("eee19b7ec3c1b174")
-  let context = SpanContext::new(trace_id, span_id, 1, false)
+  let context = SpanContext::new(
+    trace_id,
+    span_id,
+    TraceFlags::sampled(),
+    false,
+  )
   let tracer_identifier = TracerIdentifier::new("test-tracer", "1.0.0")
   let resource = Resource::empty()
   Span::new(
