@@ -302,6 +302,7 @@ pub struct Span {
   attributes : Attributes
   dropped_attributes_count : Int
   events : Array[SpanEvent]
+  links : Array[SpanLink]
   dropped_events_count : Int
   status : SpanStatus
   resource : Resource
@@ -388,6 +389,9 @@ impl ToJson for Span with to_json(self : Span) -> Json {
     json_obj["flags"] = self.trace_flags.to_json()
   }
   json_obj["status"] = self.status.to_json()
+  json_obj["attributes"] = self.attributes.to_json()
+  json_obj["events"] = Json::array(self.events.map(e => e.to_json()))
+  json_obj["links"] = Json::array(self.links.map(l => l.to_json()))
   Json::object(json_obj)
 }
 
@@ -441,6 +445,7 @@ pub fn Span::to_protobuf(self : Span) -> @trace.Span {
 
   // Serialize events
   p_span.events = self.events.map(e => e.to_protobuf())
+  p_span.links = self.links.map(l => l.to_protobuf())
   p_span
 }
 
@@ -470,6 +475,7 @@ pub fn Span::new(
     attributes: Attributes::new(),
     dropped_attributes_count: 0,
     events: [],
+    links: [],
     dropped_events_count: 0,
     resource,
     tracer_identifier,
@@ -493,6 +499,20 @@ pub fn Span::set_attribute(
 ///|
 pub fn Span::add_event(self : Span, event : SpanEvent) -> Span {
   { ..self, events: [..self.events, event] }
+}
+
+///|
+pub fn Span::add_link(
+  self : Span,
+  linked_context : SpanContext,
+  attributes? : Attributes = Default::default(),
+) -> Span {
+  let link = SpanLink::from_span_context(
+    linked_context,
+    self.trace_state,
+    attributes,
+  )
+  { ..self, links: [..self.links, link] }
 }
 
 // Set the status of the Span
@@ -529,6 +549,52 @@ pub fn Span::duration(self : Span) -> Int64? {
 ///|
 pub fn Span::context(self : Span) -> SpanContext {
   SpanContext::new(self.traceId, self.spanId, self.trace_flags, false)
+}
+
+///|
+pub struct SpanLink {
+  trace_id : TraceID
+  span_id : SpanID
+  trace_state : TraceState
+  trace_flags : TraceFlags
+  attributes : Attributes
+}
+
+///|
+pub fn SpanLink::from_span_context(
+  context : SpanContext,
+  trace_state : TraceState,
+  attributes : Attributes,
+) -> SpanLink {
+  {
+    trace_id: context.trace_id,
+    span_id: context.span_id,
+    trace_state,
+    trace_flags: context.trace_flags,
+    attributes,
+  }
+}
+
+///|
+pub impl ToJson for SpanLink with to_json(self : SpanLink) -> Json {
+  let json_obj : Map[String, Json] = {}
+  json_obj["trace_id"] = Json::string(self.trace_id.value)
+  json_obj["span_id"] = Json::string(self.span_id.value)
+  json_obj["trace_state"] = self.trace_state.to_json()
+  json_obj["trace_flags"] = self.trace_flags.to_json()
+  json_obj["attributes"] = self.attributes.to_json()
+  Json::object(json_obj)
+}
+
+///|
+pub fn SpanLink::to_protobuf(self : SpanLink) -> @trace.Span_Link {
+  let p_link = @trace.Span_Link::default()
+  p_link.trace_id = hex_to_bytes(self.trace_id.value).unwrap()
+  p_link.span_id = hex_to_bytes(self.span_id.value).unwrap()
+  p_link.trace_state = self.trace_state.to_http_header()
+  p_link.attributes = self.attributes.to_protobuf()
+  p_link.flags = self.trace_flags.to_uint()
+  p_link
 }
 
 ///|

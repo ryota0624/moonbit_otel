@@ -112,11 +112,18 @@ pub async fn run_example(
     .set_status(@otel.SpanStatus::Ok)
     .end(@otel.current_time_nanos() + 10000000)
 
+  // link用の別Spanを作成
+  let other_span = tracer
+    .span_builder("background-task")
+    .kind(@otel.SpanKind::Internal)
+    .start()
+  let other_span = other_span.add_link(child_span.context())
+
   // ConsoleExporterの作成
   let console_exporter = @otel.PrettyPrintExporter::new(print)
 
   // Spanをコンソールにエクスポート
-  console_exporter.export_spans([parent_span, child_span])
+  console_exporter.export_spans([parent_span, child_span, other_span])
 
   // ConsoleExporterをシャットダウン
   console_exporter.shutdown()
@@ -124,7 +131,7 @@ pub async fn run_example(
   // OTLPExporterの作成
   let otlp_exporter : &@otel.SpanExporter = @otel.OTLPExporter::new(otlp_config)
   // Spanを OTLP Collectorにエクスポート
-  otlp_exporter.export_spans([parent_span, child_span])
+  otlp_exporter.export_spans([parent_span, child_span, other_span])
 
   // OTLPExporterをシャットダウン
   otlp_exporter.shutdown()

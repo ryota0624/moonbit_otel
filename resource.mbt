@@ -38,11 +38,7 @@ pub impl Eq for Resource with equal(self, other : Resource) -> Bool {
 ///|
 pub fn Resource::to_protobuf(self : Resource) -> @resource.Resource {
   let resourece = @resource.Resource::default()
-  self.attributes.map.each(fn(key, value) {
-    let any_value = value.to_protobuf()
-    let key_value = @otel_common.KeyValue::{ key, value: any_value }
-    resourece.attributes.push(key_value)
-  })
+  resourece.attributes = self.attributes.to_protobuf()
   resourece
 }
 

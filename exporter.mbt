@@ -97,6 +97,28 @@ fn format_span(span : Span) -> String {
         "\n"
     })
   }
+  if not(span.links.is_empty()) {
+    output = output + "  Links:\n"
+    for link in span.links {
+      output = output +
+        "    TraceID: " +
+        link.trace_id.to_string() +
+        ", SpanID: " +
+        link.span_id.to_string() +
+        "\n"
+      if not(link.attributes.is_empty()) {
+        output = output + "      Attributes:\n"
+        link.attributes.each(fn(key, value) {
+          output = output +
+            "        " +
+            key +
+            ": " +
+            format_attribute_value(value) +
+            "\n"
+        })
+      }
+    }
+  }
 
   // イベントの表示
   if span.events.length() > 0 {
