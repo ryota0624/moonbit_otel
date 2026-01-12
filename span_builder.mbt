@@ -9,7 +9,7 @@ pub struct SpanBuilder {
   priv start_time : Int64?
   priv resource : Resource
   priv tracer_identifier : TracerIdentifier
-  priv tracer_config : TracerConfig
+  priv tracer_config : TracerOptions
 }
 
 // Create a new SpanBuilder
@@ -19,7 +19,7 @@ pub fn SpanBuilder::new(
   name : String,
   resource : Resource,
   tracer_identifier : TracerIdentifier,
-  tracer_config : TracerConfig,
+  tracer_config : TracerOptions,
 ) -> SpanBuilder {
   {
     name,

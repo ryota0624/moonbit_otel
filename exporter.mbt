@@ -6,7 +6,7 @@ pub trait SpanExporter {
   async export_spans(Self, Array[Span]) -> Unit
 
   // Exporterをシャットダウン
-  shutdown(Self) -> Unit
+  async shutdown(Self) -> Unit
 }
 
 // ConsoleExporter: Spanを指定された出力関数で出力
@@ -154,5 +154,116 @@ fn format_attribute_value(value : AttributeValue) -> String {
     AttributeValue::Int(i) => i.to_string()
     AttributeValue::Bool(b) => b.to_string()
     AttributeValue::Double(d) => d.to_string()
+  }
+}
+
+///|
+pub struct BatchExporterOptions {
+  max_queue_size : Int
+  schedule_delay_millis : Int
+  export_timeout_millis : Int
+  max_export_batch_size : Int
+  set_timeout : async (Int, async () -> Unit) -> Unit
+}
+
+///|
+priv struct BatchExporter {
+  exporter : &SpanExporter
+  options : BatchExporterOptions
+  export_waiting_spans : Array[Span]
+  sending_ququeue : @async.Queue[Unit]
+}
+
+///|
+impl Default for BatchExporterOptions with default() -> BatchExporterOptions {
+  {
+    max_queue_size: DefaultMaxQueueSize,
+    schedule_delay_millis: DefaultScheduleDelay,
+    export_timeout_millis: DefaultExportTimeout,
+    max_export_batch_size: DefaultMaxExportBatchSize,
+    set_timeout: async fn(delay, callback) {
+      callback() catch {
+        err =>
+          // エラーハンドリング（必要に応じてログ出力など）
+          ()
+      }
+    },
+  }
+}
+
+///|
+fn BatchExporter::new(
+  exporter : &SpanExporter,
+  options? : BatchExporterOptions,
+) -> BatchExporter {
+  let opts = match options {
+    Some(o) => o
+    None => BatchExporterOptions::default()
+  }
+  {
+    exporter,
+    options: opts,
+    export_waiting_spans: [],
+    sending_ququeue: @async.Queue::new(kind=@aqueue.Kind::Blocking(1)),
+  }
+}
+// DefaultMaxQueueSize is the maximum number of spans that can be queued for export.
+
+///|
+const DefaultMaxQueueSize = 2048
+
+// DefaultScheduleDelay is the delay interval between two consecutive exports, in milliseconds.
+
+///|
+const DefaultScheduleDelay = 5000
+// DefaultExportTimeout is the duration after which an export is cancelled, in milliseconds.
+
+///|
+const DefaultExportTimeout = 30000
+
+///|
+const DefaultMaxExportBatchSize = 512
+
+///|
+impl SpanExporter for BatchExporter with export_spans(
+  self : BatchExporter,
+  spans : Array[Span],
+) -> Unit {
+  self.export_waiting_spans.push_iter(spans.iter())
+  self.schedule_flush()
+}
+
+///|
+impl SpanExporter for BatchExporter with shutdown(self : BatchExporter) -> Unit {
+  self.shutdown()
+}
+
+///|
+async fn BatchExporter::shutdown(self : BatchExporter) -> Unit {
+  self.flush()
+  self.exporter.shutdown()
+}
+
+///|
+async fn BatchExporter::flush(self : BatchExporter) -> Unit {
+  self.sending_ququeue.put(())
+  let count_of_sending = @cmp.minimum(
+    self.export_waiting_spans.length(),
+    self.options.max_export_batch_size,
+  )
+  let sending_spans = self.export_waiting_spans[0:count_of_sending]
+  self.exporter.export_spans(sending_spans.to_array())
+  self.sending_ququeue.get()
+  ()
+}
+
+///|
+async fn BatchExporter::schedule_flush(self : BatchExporter) -> Unit {
+  if self.export_waiting_spans.length() >= self.options.max_export_batch_size {
+    self.flush()
+  } else {
+    (self.options.set_timeout)(self.options.schedule_delay_millis, async fn() {
+      self.flush()
+    })
   }
 }

@@ -1,16 +1,16 @@
-// TracerConfig holds configuration for Tracer ID generation
+// TracerOptions holds configuration for Tracer ID generation
 
 ///|
-pub struct TracerConfig {
+pub struct TracerOptions {
   trace_id_generator : () -> TraceID
   span_id_generator : () -> SpanID
   get_current_time_nanos : () -> Int64
 }
 
-// Create default TracerConfig using built-in generators
+// Create default TracerOptions using built-in generators
 
 ///|
-pub fn TracerConfig::default(rand : @random.Rand) -> TracerConfig {
+pub fn TracerOptions::default(rand : @random.Rand) -> TracerOptions {
   {
     trace_id_generator: () => generate_trace_id(rand),
     span_id_generator: () => generate_span_id(rand),
@@ -21,20 +21,20 @@ pub fn TracerConfig::default(rand : @random.Rand) -> TracerConfig {
 // Set custom trace ID generator
 
 ///|
-pub fn TracerConfig::with_trace_id_generator(
-  self : TracerConfig,
+pub fn TracerOptions::with_trace_id_generator(
+  self : TracerOptions,
   generator : () -> TraceID,
-) -> TracerConfig {
+) -> TracerOptions {
   { ..self, trace_id_generator: generator }
 }
 
 // Set custom span ID generator
 
 ///|
-pub fn TracerConfig::with_span_id_generator(
-  self : TracerConfig,
+pub fn TracerOptions::with_span_id_generator(
+  self : TracerOptions,
   generator : () -> SpanID,
-) -> TracerConfig {
+) -> TracerOptions {
   { ..self, span_id_generator: generator }
 }
 
@@ -44,7 +44,7 @@ pub fn TracerConfig::with_span_id_generator(
 pub struct Tracer {
   identifier : TracerIdentifier // Identifier for this tracer
   resource : Resource // Resource associated with this tracer
-  config : TracerConfig // Configuration for ID generation
+  config : TracerOptions // Configuration for ID generation
 }
 
 ///|
@@ -80,7 +80,7 @@ pub fn Tracer::new(
   resource : Resource,
   rand : @random.Rand,
 ) -> Tracer {
-  let config = TracerConfig::default(rand)
+  let config = TracerOptions::default(rand)
   { identifier: { name, version }, resource, config }
 }
 
@@ -91,7 +91,7 @@ pub fn Tracer::with_config(
   name : String,
   version : String,
   resource : Resource,
-  config : TracerConfig,
+  config : TracerOptions,
 ) -> Tracer {
   { identifier: { name, version }, resource, config }
 }

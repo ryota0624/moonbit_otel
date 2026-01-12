@@ -61,14 +61,14 @@ pub(all) enum ExportAdapter {
 }
 
 ///|
-pub struct OTLPExporterConfig {
+pub struct OTLPExporterOptions {
   logger_factory : () -> InternalLogger
   export_adapter : ExportAdapter
 }
 
 ///|
 pub struct OTLPExporter {
-  config : OTLPExporterConfig
+  config : OTLPExporterOptions
   priv logger : InternalLogger
   priv export_adapter : ExportAdapter
 }
@@ -96,28 +96,28 @@ pub(open) trait ProtobufHttpClient {
 // Create default OTLP exporter configuration
 
 ///|
-pub fn OTLPExporterConfig::default(
+pub fn OTLPExporterOptions::default(
   export_adapter : ExportAdapter,
-) -> OTLPExporterConfig {
+) -> OTLPExporterOptions {
   { logger_factory: () => InternalLogger::none(), export_adapter }
 }
 
 ///|
-pub fn OTLPExporterConfig::stdout(
+pub fn OTLPExporterOptions::stdout(
   print : (String) -> Unit,
-) -> OTLPExporterConfig {
-  OTLPExporterConfig::default(
+) -> OTLPExporterOptions {
+  OTLPExporterOptions::default(
     ExportAdapter::Stdout(StdoutSendAdaptor::new(print)),
   )
 }
 
 ///|
-pub fn OTLPExporterConfig::http_json(
+pub fn OTLPExporterOptions::http_json(
   client_provider : &JsonHttpClientProvider,
   endpoint? : String = "http://localhost:4318/v1/traces",
   headers? : Map[String, String] = {},
-) -> OTLPExporterConfig {
-  OTLPExporterConfig::default(
+) -> OTLPExporterOptions {
+  OTLPExporterOptions::default(
     ExportAdapter::HttpJson(
       HttpJsonSendAdaptor::new(client_provider, endpoint~, headers~),
     ),
@@ -125,12 +125,12 @@ pub fn OTLPExporterConfig::http_json(
 }
 
 ///|
-pub fn OTLPExporterConfig::http_protobuf(
+pub fn OTLPExporterOptions::http_protobuf(
   client_provider : &ProtobufHttpClientProvider,
   endpoint? : String = "http://localhost:4318/v1/traces",
   headers? : Map[String, String] = {},
-) -> OTLPExporterConfig {
-  OTLPExporterConfig::default(
+) -> OTLPExporterOptions {
+  OTLPExporterOptions::default(
     ExportAdapter::HttpProtobuf(
       HttpProtobufSendAdaptor::new(client_provider, endpoint~, headers~),
     ),
@@ -141,17 +141,17 @@ pub fn OTLPExporterConfig::http_protobuf(
 // Set the timeout in milliseconds
 
 ///|
-pub fn OTLPExporterConfig::enable_debug_log(
-  self : OTLPExporterConfig,
+pub fn OTLPExporterOptions::enable_debug_log(
+  self : OTLPExporterOptions,
   print~ : (&Show) -> Unit,
-) -> OTLPExporterConfig {
+) -> OTLPExporterOptions {
   { ..self, logger_factory: () => InternalLogger::{ print_fn: print } }
 }
 
 // Create a new OTLP exporter with the given configuration
 
 ///|
-pub fn OTLPExporter::new(config : OTLPExporterConfig) -> OTLPExporter {
+pub fn OTLPExporter::new(config : OTLPExporterOptions) -> OTLPExporter {
   {
     config,
     logger: (config.logger_factory)(),

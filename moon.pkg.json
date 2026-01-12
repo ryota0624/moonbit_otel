@@ -19,6 +19,7 @@
       "alias": "otel_common"
     },
     "moonbitlang/async",
+    "moonbitlang/async/aqueue",
     "moonbitlang/protobuf"
   ],
   "deps": ["moonbitlang/core/random"]
