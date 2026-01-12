@@ -1,0 +1,18 @@
+import {
+  "ryota0624/opentelemetry_proto_mbt/opentelemetry/proto/trace/v1" as @trace,
+  "ryota0624/opentelemetry_proto_mbt/opentelemetry/proto/resource/v1" as @resource,
+  "ryota0624/opentelemetry_proto_mbt/opentelemetry/proto/common/v1" as @otel_common,
+  "moonbitlang/async",
+  "moonbitlang/async/aqueue",
+  "moonbitlang/protobuf",
+}
+
+options(
+  deps: [ "moonbitlang/core/random" ],
+  "is-main": false,
+  "supported-targets": [ "js", "native" ],
+  targets: {
+    "otlp_http_js.mbt": [ "js" ],
+    "otlp_http_native.mbt": [ "native" ],
+  },
+)

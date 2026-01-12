@@ -1,0 +1,6 @@
+import { "ryota0624/moonbit_otel" as @lib, "moonbitlang/async" }
+
+options(
+  "is-main": false,
+  targets: { "otlp_http_js.mbt": [ "js" ] },
+)
