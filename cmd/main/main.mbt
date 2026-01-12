@@ -3,7 +3,7 @@
 async fn main {
   // Using JSON format
   let json_provider = @otel_js.json_http_client_provider()
-  let json_config = @otel.OTLPExporterConfig::http_json(
+  let json_config = @otel.OTLPExporterOptions::http_json(
     json_provider,
     endpoint="http://192.168.0.9:4318/v1/traces",
   ).enable_debug_log(print=println)
@@ -11,7 +11,7 @@ async fn main {
 
   // Using Protobuf format
   let protobuf_provider = @otel_js.protobuf_http_client_provider()
-  let protobuf_config = @otel.OTLPExporterConfig::http_protobuf(
+  let protobuf_config = @otel.OTLPExporterOptions::http_protobuf(
     protobuf_provider,
     endpoint="http://192.168.0.9:4318/v1/traces",
   ).enable_debug_log(print=println)
@@ -25,7 +25,7 @@ async fn main {
 async fn main {
   // Using JSON format
   let json_provider = @otel_native.json_http_client_provider()
-  let json_config = @otel.OTLPExporterConfig::http_json(
+  let json_config = @otel.OTLPExporterOptions::http_json(
     json_provider,
     endpoint="http://192.168.0.9:4318/v1/traces",
   ).enable_debug_log(print=println)
@@ -33,7 +33,7 @@ async fn main {
 
   // Using Protobuf format
   let protobuf_provider = @otel_native.protobuf_http_client_provider()
-  let protobuf_config = @otel.OTLPExporterConfig::http_protobuf(
+  let protobuf_config = @otel.OTLPExporterOptions::http_protobuf(
     protobuf_provider,
     endpoint="http://192.168.0.9:4318/v1/traces",
   ).enable_debug_log(print=println)
@@ -44,7 +44,7 @@ async fn main {
 
 ///|
 pub async fn run_example(
-  otlp_config : @otel.OTLPExporterConfig,
+  otlp_config : @otel.OTLPExporterOptions,
   print~ : (String) -> Unit,
 ) -> Unit {
   // Resourceの作成
