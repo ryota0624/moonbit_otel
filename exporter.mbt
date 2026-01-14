@@ -164,45 +164,54 @@ pub struct BatchExporterOptions {
   export_timeout_millis : Int
   max_export_batch_size : Int
   set_timeout : async (Int, async () -> Unit) -> Unit
+  logger_factory : () -> InternalLogger
 }
 
 ///|
-priv struct BatchExporter {
-  exporter : &SpanExporter
-  options : BatchExporterOptions
-  export_waiting_spans : Array[Span]
-  sending_ququeue : @async.Queue[Unit]
+pub struct BatchExporter {
+  priv exporter : &SpanExporter
+  priv options : BatchExporterOptions
+  priv export_waiting_spans : Array[Span]
+  priv sending_ququeue : @async.Queue[Unit]
 }
 
 ///|
-impl Default for BatchExporterOptions with default() -> BatchExporterOptions {
+pub impl Default for BatchExporterOptions with default() -> BatchExporterOptions {
   {
     max_queue_size: DefaultMaxQueueSize,
     schedule_delay_millis: DefaultScheduleDelay,
     export_timeout_millis: DefaultExportTimeout,
     max_export_batch_size: DefaultMaxExportBatchSize,
-    set_timeout: async fn(delay, callback) {
+    set_timeout: async fn(_, callback) {
       callback() catch {
-        err =>
+        _ =>
           // エラーハンドリング（必要に応じてログ出力など）
           ()
       }
     },
+    logger_factory: () => InternalLogger::none(),
   }
 }
 
 ///|
-fn BatchExporter::new(
-  exporter : &SpanExporter,
-  options? : BatchExporterOptions,
-) -> BatchExporter {
-  let opts = match options {
-    Some(o) => o
-    None => BatchExporterOptions::default()
+pub fn BatchExporterOptions::enable_debug_log(
+  self : BatchExporterOptions,
+  print : (&Show) -> Unit,
+) -> BatchExporterOptions {
+  return BatchExporterOptions::{
+    ..self,
+    logger_factory: () => InternalLogger::{ print_fn: print },
   }
+}
+
+///|
+pub fn BatchExporter::new(
+  exporter : &SpanExporter,
+  options? : BatchExporterOptions = BatchExporterOptions::default(),
+) -> BatchExporter {
   {
     exporter,
-    options: opts,
+    options,
     export_waiting_spans: [],
     sending_ququeue: @async.Queue::new(kind=@aqueue.Kind::Blocking(1)),
   }

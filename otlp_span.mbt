@@ -159,7 +159,8 @@ pub fn spans_to_resource_spans_protobuf_bytes(
   let traces_data = otlp.to_protobuf()
   let buffer = @buffer.new()
   traces_data.write(buffer) catch {
-    e => raise Failure("Protobuf serialization failed: " + e.to_string())
+    e =>
+      raise Failure::Failure("Protobuf serialization failed: " + e.to_string())
   }
   buffer.to_bytes()
 }
