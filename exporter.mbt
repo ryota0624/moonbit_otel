@@ -1,7 +1,7 @@
 // SpanExporter trait: Spanを外部に出力するためのインターフェース
 
 ///|
-pub trait SpanExporter {
+pub(open) trait SpanExporter {
   // Spanのバッチをエクスポート
   async export_spans(Self, Array[Span]) -> Unit
 
@@ -163,7 +163,7 @@ pub struct BatchExporterOptions {
   schedule_delay_millis : Int
   export_timeout_millis : Int
   max_export_batch_size : Int
-  set_timeout : async (Int, async () -> Unit) -> Unit
+  set_timeout : async (Int, async () -> Unit noraise) -> Unit
   logger_factory : () -> InternalLogger
 }
 
@@ -176,13 +176,43 @@ pub struct BatchExporter {
 }
 
 ///|
+pub async fn[T, E : Error] suspend(
+  f : ((T) -> Unit, (E) -> Unit) -> Unit,
+) -> T raise E = "%async.suspend"
+
+///|
+#cfg(target="js")
+#external
+priv type JSTimer
+
+///|
+#cfg(target="js")
+extern "js" fn js_set_timeout(f : () -> Unit, duration~ : Int) -> JSTimer =
+  #| (f, duration) => setTimeout(f, duration)
+
+///|
+#cfg(target="js")
+pub async fn sleep(duration : Int) -> Unit {
+  suspend(fn(resume_ok, _resume_err) {
+    js_set_timeout(duration~, fn() { resume_ok(()) }) |> ignore
+  })
+}
+
+///|
+#cfg(target="native")
+pub async fn sleep(duration : Int) -> Unit {
+  @async.sleep(duration)
+}
+
+///|
 pub impl Default for BatchExporterOptions with default() -> BatchExporterOptions {
   {
     max_queue_size: DefaultMaxQueueSize,
     schedule_delay_millis: DefaultScheduleDelay,
     export_timeout_millis: DefaultExportTimeout,
     max_export_batch_size: DefaultMaxExportBatchSize,
-    set_timeout: async fn(_, callback) {
+    set_timeout: async fn(duration, callback) {
+      sleep(duration)
       callback() catch {
         _ =>
           // エラーハンドリング（必要に応じてログ出力など）
@@ -202,6 +232,46 @@ pub fn BatchExporterOptions::enable_debug_log(
     ..self,
     logger_factory: () => InternalLogger::{ print_fn: print },
   }
+}
+
+///|
+pub fn BatchExporterOptions::with_max_queue_size(
+  self : BatchExporterOptions,
+  size : Int,
+) -> BatchExporterOptions {
+  { ..self, max_queue_size: size }
+}
+
+///|
+pub fn BatchExporterOptions::with_schedule_delay_millis(
+  self : BatchExporterOptions,
+  millis : Int,
+) -> BatchExporterOptions {
+  { ..self, schedule_delay_millis: millis }
+}
+
+///|
+pub fn BatchExporterOptions::with_export_timeout_millis(
+  self : BatchExporterOptions,
+  millis : Int,
+) -> BatchExporterOptions {
+  { ..self, export_timeout_millis: millis }
+}
+
+///|
+pub fn BatchExporterOptions::with_max_export_batch_size(
+  self : BatchExporterOptions,
+  size : Int,
+) -> BatchExporterOptions {
+  { ..self, max_export_batch_size: size }
+}
+
+///|
+pub fn BatchExporterOptions::with_set_timeout(
+  self : BatchExporterOptions,
+  set_timeout : async (Int, async () -> Unit noraise) -> Unit,
+) -> BatchExporterOptions {
+  { ..self, set_timeout, }
 }
 
 ///|
@@ -234,7 +304,7 @@ const DefaultExportTimeout = 30000
 const DefaultMaxExportBatchSize = 512
 
 ///|
-impl SpanExporter for BatchExporter with export_spans(
+pub impl SpanExporter for BatchExporter with export_spans(
   self : BatchExporter,
   spans : Array[Span],
 ) -> Unit {
@@ -243,7 +313,7 @@ impl SpanExporter for BatchExporter with export_spans(
 }
 
 ///|
-impl SpanExporter for BatchExporter with shutdown(self : BatchExporter) -> Unit {
+pub impl SpanExporter for BatchExporter with shutdown(self : BatchExporter) -> Unit {
   self.shutdown()
 }
 
@@ -271,8 +341,13 @@ async fn BatchExporter::schedule_flush(self : BatchExporter) -> Unit {
   if self.export_waiting_spans.length() >= self.options.max_export_batch_size {
     self.flush()
   } else {
-    (self.options.set_timeout)(self.options.schedule_delay_millis, async fn() {
-      self.flush()
+    (self.options.set_timeout)(self.options.schedule_delay_millis, async fn() -> Unit noraise {
+      self.flush() catch {
+        e =>
+          (self.options.logger_factory)().log(
+            "[BatchExporter] Failed to flush spans: " + e.to_string(),
+          )
+      }
     })
   }
 }
