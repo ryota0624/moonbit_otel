@@ -286,11 +286,10 @@ pub async fn BatchExporter::start(self : BatchExporter) -> Unit {
     group.spawn_loop(async fn() {
       self.schedule_queue.get()
       self.schedule_flush() catch {
-        e => {
+        e =>
           (self.options.logger_factory)().log(
             "[BatchExporter] Failed to flush spans: " + e.to_string(),
           )
-        }
       }
       IterContinue
     })
@@ -341,14 +340,20 @@ async fn BatchExporter::flush(self : BatchExporter) -> Unit {
     self.export_waiting_spans.length(),
     self.options.max_export_batch_size,
   )
-  let sending_spans = self.export_waiting_spans[0:count_of_sending]
-  self.exporter.export_spans(sending_spans.to_array())
+  let sending_spans = self.export_waiting_spans.drain(0, count_of_sending)
+  self.exporter.export_spans(sending_spans)
   self.sending_queue.get()
   ()
 }
 
 ///|
 async fn BatchExporter::schedule_flush(self : BatchExporter) -> Unit {
+  if self.export_waiting_spans.is_empty() {
+    (self.options.logger_factory)().log(
+      "[BatchExporter] No spans to export, skipping flush.",
+    )
+    return
+  }
   if self.export_waiting_spans.length() >= self.options.max_export_batch_size {
     self.flush()
   } else {
