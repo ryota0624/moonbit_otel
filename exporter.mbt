@@ -13,7 +13,7 @@ pub(open) trait SpanExporter {
 ///|
 impl SpanExporter with enable_batch_export(
   self : Self,
-  options~ : BatchExporterOptions = Default::default(),
+  options? : BatchExporterOptions = Default::default(),
 ) -> BatchExporter {
   BatchExporter::new(self, options~)
 }
@@ -181,7 +181,8 @@ pub struct BatchExporter {
   priv exporter : &SpanExporter
   priv options : BatchExporterOptions
   priv export_waiting_spans : Array[Span]
-  priv sending_ququeue : @async.Queue[Unit]
+  priv sending_queue : @async.Queue[Unit]
+  priv schedule_queue : @async.Queue[Unit]
 }
 
 ///|
@@ -200,20 +201,6 @@ extern "js" fn js_set_timeout(f : () -> Unit, duration~ : Int) -> JSTimer =
   #| (f, duration) => setTimeout(f, duration)
 
 ///|
-#cfg(target="js")
-pub async fn sleep(duration : Int) -> Unit {
-  suspend(fn(resume_ok, _resume_err) {
-    js_set_timeout(duration~, fn() { resume_ok(()) }) |> ignore
-  })
-}
-
-///|
-#cfg(target="native")
-pub async fn sleep(duration : Int) -> Unit {
-  @async.sleep(duration)
-}
-
-///|
 pub impl Default for BatchExporterOptions with default() -> BatchExporterOptions {
   {
     max_queue_size: DefaultMaxQueueSize,
@@ -221,7 +208,7 @@ pub impl Default for BatchExporterOptions with default() -> BatchExporterOptions
     export_timeout_millis: DefaultExportTimeout,
     max_export_batch_size: DefaultMaxExportBatchSize,
     set_timeout: async fn(duration, callback) {
-      sleep(duration)
+      @async.sleep(duration)
       callback()
     },
     logger_factory: () => InternalLogger::none(),
@@ -288,8 +275,26 @@ pub fn BatchExporter::new(
     exporter,
     options,
     export_waiting_spans: [],
-    sending_ququeue: @async.Queue::new(kind=@aqueue.Kind::Blocking(1)),
+    sending_queue: @async.Queue::new(kind=@aqueue.Kind::Blocking(1)),
+    schedule_queue: @async.Queue::new(kind=@aqueue.Kind::Unbounded),
   }
+}
+
+///|
+pub async fn BatchExporter::start(self : BatchExporter) -> Unit {
+  @async.with_task_group(async fn(group) {
+    group.spawn_loop(async fn() {
+      self.schedule_queue.get()
+      self.schedule_flush() catch {
+        e => {
+          (self.options.logger_factory)().log(
+            "[BatchExporter] Failed to flush spans: " + e.to_string(),
+          )
+        }
+      }
+      IterContinue
+    })
+  })
 }
 // DefaultMaxQueueSize is the maximum number of spans that can be queued for export.
 
@@ -314,7 +319,8 @@ pub impl SpanExporter for BatchExporter with export_spans(
   spans : Array[Span],
 ) -> Unit {
   self.export_waiting_spans.push_iter(spans.iter())
-  self.schedule_flush()
+  self.schedule_queue.put(())
+  // self.schedule_flush()
 }
 
 ///|
@@ -330,14 +336,14 @@ async fn BatchExporter::shutdown(self : BatchExporter) -> Unit {
 
 ///|
 async fn BatchExporter::flush(self : BatchExporter) -> Unit {
-  self.sending_ququeue.put(())
+  self.sending_queue.put(())
   let count_of_sending = @cmp.minimum(
     self.export_waiting_spans.length(),
     self.options.max_export_batch_size,
   )
   let sending_spans = self.export_waiting_spans[0:count_of_sending]
   self.exporter.export_spans(sending_spans.to_array())
-  self.sending_ququeue.get()
+  self.sending_queue.get()
   ()
 }
 

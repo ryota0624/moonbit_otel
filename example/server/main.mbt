@@ -5,9 +5,7 @@ async fn main {
     protobuf_provider,
     endpoint="http://localhost:4318/v1/traces",
   ).enable_debug_log(print=println)
-  let otlp_exporter : &@moonbit_otel.SpanExporter = @moonbit_otel.OTLPExporter::new(
-    otlp_config,
-  ).enable_batch_export()
+  let otlp_exporter = @moonbit_otel.OTLPExporter::new(otlp_config).enable_batch_export()
   let resource = @moonbit_otel.Resource::empty()
     .with_string(@moonbit_otel.service_name, "demo-service")
     .with_string(@moonbit_otel.service_version, "1.0.0")
@@ -20,6 +18,8 @@ async fn main {
   )
   let _ = @async.with_task_group(fn(group) {
     group.add_defer(async fn() { otlp_exporter.shutdown() })
+    group.spawn_bg(async fn() { otlp_exporter.start() })
+    // Start HTTP server to receive requests
     group.spawn_bg(async fn() {
       let server = @http.Server::new(@socket.Addr::parse("0.0.0.0:8000"))
       println("Server is running on http://localhost:8000")

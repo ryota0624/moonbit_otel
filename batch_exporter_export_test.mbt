@@ -86,7 +86,7 @@ async test "batch size of 2 triggers immediate flush when reached" {
         _ => ()
       }
     })
-    sleep(10) // Allow async export to complete
+    @async.sleep(10) // Allow async export to complete
     assert_eq(mock.export_calls.length(), 1)
     assert_eq(mock.export_calls[0].length(), 2)
   })
@@ -110,9 +110,9 @@ async test "batch size of 10 schedules delayed flush when not reached" {
         _ => ()
       }
     })
-    sleep(10) // Allow async timeout to be scheduled
+    @async.sleep(10) // Allow async timeout to be scheduled
     assert_true(mock.export_calls.is_empty())
-    sleep(1000)
+    @async.sleep(1000)
     assert_false(mock.export_calls.is_empty())
   })
 
