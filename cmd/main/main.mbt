@@ -1,3 +1,15 @@
+// OpenTelemetry OTLP Exporter Example
+//
+// docker run --rm --name jaeger \
+// -p 16686:16686 \
+// -p 4317:4317 \
+// -p 4318:4318 \
+// -p 5778:5778 \
+// -p 9411:9411 \
+// cr.jaegertracing.io/jaegertracing/jaeger:2.13.0
+//
+// moon run --target js cmd/main/main.mbt
+
 ///|
 #cfg(target="js")
 async fn main {
@@ -5,7 +17,7 @@ async fn main {
   let json_provider = @otel_js.json_http_client_provider()
   let json_config = @otel.OTLPExporterOptions::http_json(
     json_provider,
-    endpoint="http://192.168.0.9:4318/v1/traces",
+    endpoint="http://localhost:4318/v1/traces",
   ).enable_debug_log(print=println)
   run_example(json_config, print=println)
 
@@ -13,7 +25,7 @@ async fn main {
   let protobuf_provider = @otel_js.protobuf_http_client_provider()
   let protobuf_config = @otel.OTLPExporterOptions::http_protobuf(
     protobuf_provider,
-    endpoint="http://192.168.0.9:4318/v1/traces",
+    endpoint="http://localhost:4318/v1/traces",
   ).enable_debug_log(print=println)
 
   // Run example with Protobuf (you can change to json_config if needed)
@@ -27,7 +39,7 @@ async fn main {
   let json_provider = @otel_native.json_http_client_provider()
   let json_config = @otel.OTLPExporterOptions::http_json(
     json_provider,
-    endpoint="http://192.168.0.9:4318/v1/traces",
+    endpoint="http://localhost:4318/v1/traces",
   ).enable_debug_log(print=println)
   run_example(json_config, print=println)
 
@@ -35,7 +47,7 @@ async fn main {
   let protobuf_provider = @otel_native.protobuf_http_client_provider()
   let protobuf_config = @otel.OTLPExporterOptions::http_protobuf(
     protobuf_provider,
-    endpoint="http://192.168.0.9:4318/v1/traces",
+    endpoint="http://localhost:4318/v1/traces",
   ).enable_debug_log(print=println)
 
   // Run example with Protobuf (you can change to json_config if needed)
