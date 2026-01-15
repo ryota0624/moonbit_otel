@@ -68,17 +68,5 @@ async fn send_span(
   exporeter.export_spans([span]) catch {
     err => println("[Error] Failed to export spans: " + err.to_string())
   }
-  // @async.with_task_group(fn(group) {
-  //   println("Spawning background task to export span for request: " + req.path)
-  //   group.spawn_bg(no_wait=true, fn() {
-  //     println("Exporting span...")
-  //     exporeter.export_spans([span]) catch {
-  //       err => println("[Error] Failed to export spans: " + err.to_string())
-  //     }
-  //     println("Span exported.")
-  //   })
-  // }) catch {
-  //   _ => println("[Error] Failed to process request.")
-  // }
   ()
 }
