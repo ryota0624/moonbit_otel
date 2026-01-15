@@ -1,4 +1,13 @@
 ///|
+// docker run --rm --name jaeger \
+// -p 16686:16686 \
+// -p 4317:4317 \
+// -p 4318:4318 \
+// -p 5778:5778 \
+// -p 9411:9411 \
+// cr.jaegertracing.io/jaegertracing/jaeger:2.13.0
+// moon run --target native .
+// repeat 10 curl -v http://localhost:8000
 async fn main {
   let protobuf_provider = @otel_native.protobuf_http_client_provider()
   let otlp_config = @moonbit_otel.OTLPExporterOptions::http_protobuf(
