@@ -7,6 +7,15 @@ pub(open) trait SpanExporter {
 
   // Exporterをシャットダウン
   async shutdown(Self) -> Unit
+  enable_batch_export(self : Self, options? : BatchExporterOptions) -> BatchExporter = _
+}
+
+///|
+impl SpanExporter with enable_batch_export(
+  self : Self,
+  options~ : BatchExporterOptions = Default::default(),
+) -> BatchExporter {
+  BatchExporter::new(self, options~)
 }
 
 // ConsoleExporter: Spanを指定された出力関数で出力
@@ -213,11 +222,7 @@ pub impl Default for BatchExporterOptions with default() -> BatchExporterOptions
     max_export_batch_size: DefaultMaxExportBatchSize,
     set_timeout: async fn(duration, callback) {
       sleep(duration)
-      callback() catch {
-        _ =>
-          // エラーハンドリング（必要に応じてログ出力など）
-          ()
-      }
+      callback()
     },
     logger_factory: () => InternalLogger::none(),
   }

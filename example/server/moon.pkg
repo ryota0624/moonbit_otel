@@ -1,0 +1,14 @@
+import {
+  "moonbitlang/async",
+  "ryota0624/moonbit_otel",
+  "ryota0624/moonbit_otel/native" as @otel_native,
+  "moonbitlang/async/http",
+  "moonbitlang/async/socket",
+  "moonbitlang/async/io"
+
+}
+
+options(
+  "is-main": true,
+  "supported-targets": [ "native" ],
+)

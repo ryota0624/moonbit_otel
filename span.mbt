@@ -271,8 +271,8 @@ pub struct SpanEvent {
 ///|
 pub fn SpanEvent::new(
   name : String,
-  timestamp : Int64,
   attributes : Attributes,
+  timestamp? : Int64 = current_time_nanos(),
 ) -> SpanEvent {
   { name, timestamp, attributes }
 }
@@ -525,7 +525,7 @@ pub fn Span::set_status(self : Span, status : SpanStatus) -> Span {
 // End the Span with the given timestamp
 
 ///|
-pub fn Span::end(self : Span, end_time : Int64) -> Span {
+pub fn Span::end(self : Span, end_time? : Int64 = current_time_nanos()) -> Span {
   { ..self, end_time_unix_nano: Some(end_time) }
 }
 

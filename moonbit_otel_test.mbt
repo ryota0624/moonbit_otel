@@ -226,7 +226,7 @@ test "Span::set_attribute adds an attribute" {
 ///|
 test "Span::add_event adds an event to the span" {
   let span = create_test_span()
-  let event = SpanEvent::new("error", 2000L, Attributes::empty())
+  let event = SpanEvent::new("error", timestamp=2000L, Attributes::empty())
   let span_with_event = span.add_event(event)
   assert_eq(span_with_event.events.length(), 1)
   assert_eq(span_with_event.events[0].name, "error")
@@ -252,7 +252,7 @@ test "Span::end marks the span as ended" {
     resource,
     tracer_identifier,
     None,
-  ).end(3000L)
+  ).end(end_time=3000L)
   assert_true(span.is_ended())
   assert_eq(span.duration(), Some(2000L))
 }

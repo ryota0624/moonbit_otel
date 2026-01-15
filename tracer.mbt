@@ -130,11 +130,11 @@ pub fn Tracer::span_event(
   self : Tracer,
   name : String,
   attributes? : Attributes = Default::default(),
-  event_time? : Int64,
+  event_time? : Int64? = None,
 ) -> SpanEvent {
   SpanEvent::new(
     name,
-    event_time.unwrap_or_else(self.config.get_current_time_nanos),
     attributes,
+    timestamp=event_time.unwrap_or_else(self.config.get_current_time_nanos),
   )
 }
