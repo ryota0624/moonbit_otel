@@ -9,7 +9,7 @@ pub struct SpanBuilder {
   priv start_time : Int64?
   priv resource : Resource
   priv tracer_identifier : TracerIdentifier
-  priv tracer_config : TracerOptions
+  priv tracer_options : TracerOptions
 }
 
 // Create a new SpanBuilder
@@ -19,7 +19,7 @@ pub fn SpanBuilder::new(
   name : String,
   resource : Resource,
   tracer_identifier : TracerIdentifier,
-  tracer_config : TracerOptions,
+  tracer_options : TracerOptions,
 ) -> SpanBuilder {
   {
     name,
@@ -29,7 +29,7 @@ pub fn SpanBuilder::new(
     start_time: None,
     resource,
     tracer_identifier,
-    tracer_config,
+    tracer_options,
   }
 }
 
@@ -106,9 +106,9 @@ pub fn SpanBuilder::start(self : SpanBuilder) -> Span {
   // Generate new trace and span IDs using tracer's config generators
   let trace_id = match self.parent_context {
     Some(parent) => parent.trace_id
-    None => (self.tracer_config.trace_id_generator)()
+    None => (self.tracer_options.trace_id_generator)()
   }
-  let span_id = (self.tracer_config.span_id_generator)()
+  let span_id = (self.tracer_options.span_id_generator)()
   let parent_span_id = match self.parent_context {
     Some(parent) => Some(parent.span_id)
     None => None
@@ -122,7 +122,7 @@ pub fn SpanBuilder::start(self : SpanBuilder) -> Span {
   let context = SpanContext::new(trace_id, span_id, trace_flags, false)
   let start_time = match self.start_time {
     Some(t) => t
-    None => (self.tracer_config.get_current_time_nanos)()
+    None => (self.tracer_options.get_current_time_nanos)()
   }
   let mut span = Span::new(
     context,
@@ -132,6 +132,7 @@ pub fn SpanBuilder::start(self : SpanBuilder) -> Span {
     self.resource,
     self.tracer_identifier,
     parent_span_id,
+    on_end=self.tracer_options.span_on_end,
   )
 
   // Add all attributes from the builder

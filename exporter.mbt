@@ -185,10 +185,6 @@ pub struct BatchExporter {
   priv schedule_queue : @async.Queue[Unit]
 }
 
-///|
-pub async fn[T, E : Error] suspend(
-  f : ((T) -> Unit, (E) -> Unit) -> Unit,
-) -> T raise E = "%async.suspend"
 
 ///|
 #cfg(target="js")
@@ -296,21 +292,6 @@ pub async fn BatchExporter::start(self : BatchExporter) -> Unit {
   })
 }
 // DefaultMaxQueueSize is the maximum number of spans that can be queued for export.
-
-///|
-const DefaultMaxQueueSize = 2048
-
-// DefaultScheduleDelay is the delay interval between two consecutive exports, in milliseconds.
-
-///|
-const DefaultScheduleDelay = 5000
-// DefaultExportTimeout is the duration after which an export is cancelled, in milliseconds.
-
-///|
-const DefaultExportTimeout = 30000
-
-///|
-const DefaultMaxExportBatchSize = 512
 
 ///|
 pub impl SpanExporter for BatchExporter with export_spans(

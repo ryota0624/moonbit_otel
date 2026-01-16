@@ -266,8 +266,7 @@ test "Span::set_status sets the span status" {
 ///|
 test "Tracer::new creates a tracer" {
   let resource = Resource::empty().with_string(service_name, "my-service")
-  let rand = rand_by_current_time()
-  let tracer = Tracer::new("my-library", "1.0.0", resource, rand~)
+  let tracer = Tracer::new("my-library", "1.0.0", resource)
   assert_eq(tracer.name(), "my-library")
   assert_eq(tracer.version(), "1.0.0")
 }
@@ -275,9 +274,8 @@ test "Tracer::new creates a tracer" {
 ///|
 test "Tracer::start_span creates a span" {
   let resource = Resource::empty().with_string(service_name, "my-service")
-  let rand = rand_by_current_time()
-  let tracer = Tracer::new("my-library", "1.0.0", resource, rand~)
-  let span = tracer.start_span("operation", SpanKind::Server, None)
+  let tracer = Tracer::new("my-library", "1.0.0", resource)
+  let span = tracer.start_span("operation", kind=SpanKind::Server)
   assert_eq(span.name, "operation")
   assert_eq(span.kind, SpanKind::Server)
   assert_true(span.traceId.is_valid() && span.spanId.is_valid())
@@ -286,9 +284,8 @@ test "Tracer::start_span creates a span" {
 ///|
 test "Tracer creates child span with parent context" {
   let resource = Resource::empty().with_string(service_name, "my-service")
-  let rand = rand_by_current_time()
-  let tracer = Tracer::new("my-library", "1.0.0", resource, rand~)
-  let parent_span = tracer.start_span("parent", SpanKind::Server, None)
+  let tracer = Tracer::new("my-library", "1.0.0", resource)
+  let parent_span = tracer.start_span("parent", kind=SpanKind::Server)
   let parent_context = SpanContext::new(
     parent_span.traceId,
     parent_span.spanId,
@@ -297,34 +294,9 @@ test "Tracer creates child span with parent context" {
   )
   let child_span = tracer.start_span(
     "child",
-    SpanKind::Internal,
-    Some(parent_context),
+    kind=SpanKind::Internal,
+    parent=parent_context,
   )
   assert_eq(child_span.traceId, parent_span.traceId)
   assert_eq(child_span.parent_span_id, Some(parent_span.spanId))
-}
-
-///|
-test "SpanBuilder creates span with attributes" {
-  let resource = Resource::empty().with_string(service_name, "my-service")
-  let rand = rand_by_current_time()
-  let tracer = Tracer::new("my-library", "1.0.0", resource, rand~)
-  let span = tracer
-    .span_builder("http-request")
-    .kind(SpanKind::Client)
-    .attribute("http.url", AttributeValue::String("https://example.com"))
-    .attribute("http.status_code", AttributeValue::Int(200))
-    .start_time_ns(5000L)
-    .start()
-  assert_eq(span.name, "http-request")
-  assert_eq(span.kind, SpanKind::Client)
-  assert_eq(span.start_time_unix_nano, 5000L)
-  assert_eq(
-    span.attributes.get("http.url"),
-    Some(AttributeValue::String("https://example.com")),
-  )
-  assert_eq(
-    span.attributes.get("http.status_code"),
-    Some(AttributeValue::Int(200)),
-  )
 }

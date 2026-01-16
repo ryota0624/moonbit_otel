@@ -69,19 +69,17 @@ pub async fn run_example(
   let tracer = @otel.Tracer::new("demo-tracer", "1.0.0", resource)
 
   // 親Spanの作成
-  let parent_span = tracer
-    .span_builder("http-request")
-    .kind(@otel.SpanKind::Server)
-    .attribute("http.method", @otel.AttributeValue::String("GET"))
-    .attribute("http.url", @otel.AttributeValue::String("/api/users"))
-    .attribute("http.status_code", @otel.AttributeValue::Int(200))
-    .attributes(
-      @otel.Attributes::default().with_string(
+  let parent_span = tracer.start_span(
+    "http-request",
+    kind=@otel.SpanKind::Server,
+    attributes=@otel.Attributes::default()
+      .with_string("http.method", "GET")
+      .with_string("http.url", "/api/users")
+      .with_int("http.status_code", 200)
+      .with_string(
         "http.user_agent", "Mozilla/5.0 (compatible; DemoClient/1.0)",
       ),
-    )
-    .start_time_ns(@otel.current_time_nanos())
-    .start()
+  )
 
   // イベントの追加
   let event = @otel.SpanEvent::new(
@@ -94,17 +92,14 @@ pub async fn run_example(
   // 子Spanの作成
   let parent_context = parent_span.context()
   let child_span = tracer
-    .span_builder("database-query")
-    .kind(@otel.SpanKind::Client)
-    .parent(parent_context)
-    // .parent(parent_span)
-    .attribute("db.system", @otel.AttributeValue::String("postgresql"))
-    .attribute(
-      "db.statement",
-      @otel.AttributeValue::String("SELECT * FROM users"),
+    .start_span(
+      "database-query",
+      parent=parent_context,
+      kind=@otel.SpanKind::Client,
+      attributes=@otel.Attributes::default().with_string(
+        "db.system", "postgresql",
+      ),
     )
-    .start_time_ns(@otel.current_time_nanos())
-    .start()
     .set_status(@otel.SpanStatus::Ok)
     .end(end_time_ns=@otel.current_time_nanos() + 5000000)
   let child_span = child_span.add_event(
@@ -121,9 +116,9 @@ pub async fn run_example(
 
   // link用の別Spanを作成
   let other_span = tracer
-    .span_builder("background-task")
-    .kind(@otel.SpanKind::Internal)
-    .start()
+    .start_span("related-operation")
+    .set_status(@otel.SpanStatus::Ok)
+    .end()
   let other_span = other_span.add_link(child_span.context())
 
   // ConsoleExporterの作成

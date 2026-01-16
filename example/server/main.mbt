@@ -15,26 +15,30 @@ async fn main {
     protobuf_provider,
     endpoint="http://localhost:4318/v1/traces",
   ).enable_debug_log(print=println)
-  let otlp_exporter = @moonbit_otel.OTLPExporter::new(otlp_config).enable_batch_export()
+  let otlp_exporter = @moonbit_otel.OTLPExporter::new(otlp_config)
   let resource = @moonbit_otel.Resource::empty()
     .with_string(@moonbit_otel.service_name, "demo-service")
     .with_string(@moonbit_otel.service_version, "1.0.0")
     .with_string("environment", "development")
-  let tracer = @moonbit_otel.Tracer::new(
-    "demo-tracer",
-    "1.0.0",
-    resource,
+  let processor_options = @moonbit_otel.BatchSpanProcessorOptions::default().enable_debug_log(println)
+  let processor = @moonbit_otel.BatchSpanProcessor::new(
+    otlp_exporter,
+    options=processor_options,
   )
+  let trace_provider = @moonbit_otel.TracerProvider::new(
+    "demo-trace", "1.0.0", resource,
+  ).with_span_processors([processor])
+  @moonbit_otel.TracerProvider::set_global(trace_provider)
   let _ = @async.with_task_group(fn(group) {
     group.add_defer(async fn() { otlp_exporter.shutdown() })
-    group.spawn_bg(async fn() { otlp_exporter.start() })
+    group.spawn_bg(async fn() { processor.start() })
     // Start HTTP server to receive requests
     group.spawn_bg(async fn() {
       let server = @http.Server::new(@socket.Addr::parse("0.0.0.0:8000"))
       println("Server is running on http://localhost:8000")
       server.run_forever(fn(req, _, conn) {
         println("Received request: " + req.path)
-        send_span(req, tracer, otlp_exporter)
+        send_span(req)
         println("Sent span for request: " + req.path)
         conn.send_response(200, "OK")
         conn.write(@encoding/utf8.encode("Hello, World!\n"))
@@ -47,33 +51,26 @@ async fn main {
   println("Server has stopped.")
 }
 
+///|
 #cfg(not(target="native"))
 fn main {
   println("This example is only supported on native target.")
-  panic()  
+  panic()
 }
 
 ///|
 #cfg(target="native")
-async fn send_span(
-  req : @http.Request,
-  tracer : @moonbit_otel.Tracer,
-  exporeter : &@moonbit_otel.SpanExporter,
-) -> Unit noraise {
+async fn send_span(req : @http.Request) -> Unit noraise {
+  let tracer = @moonbit_otel.TracerProvider::global().tracer()
   println("Creating span for request: " + req.path)
-  let span = tracer
-    .span_builder("http-request")
-    .kind(@moonbit_otel.SpanKind::Server)
-    // .parent(parent_context)
-    .attribute(
-      "http.method",
-      @moonbit_otel.AttributeValue::String(req.meth.to_string()),
-    )
-    .attribute("http.path", @moonbit_otel.AttributeValue::String(req.path))
-    .start()
-  let span = span.set_status(@moonbit_otel.SpanStatus::Ok).end()
-  exporeter.export_spans([span]) catch {
-    err => println("[Error] Failed to export spans: " + err.to_string())
-  }
+  let span = tracer.start_span(
+    "http-request",
+    kind=@moonbit_otel.SpanKind::Server,
+    attributes=@moonbit_otel.Attributes::default()
+      .with_string("http.method", req.meth.to_string())
+      .with_string("http.path", req.path),
+  )
+  // .parent(parent_context)
+  let _ = span.set_status(@moonbit_otel.SpanStatus::Ok).end()
   ()
 }

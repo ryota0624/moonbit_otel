@@ -32,9 +32,7 @@ pub impl SpanExporter for MockExporter with export_spans(
   self : MockExporter,
   spans : Array[Span],
 ) -> Unit {
-  self.export_spans(spans) catch {
-    _ => ()
-  }
+  self.export_spans(spans)
 }
 
 ///|
