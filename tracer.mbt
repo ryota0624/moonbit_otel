@@ -138,3 +138,32 @@ pub fn Tracer::span_event(
     timestamp=event_time.unwrap_or_else(self.config.get_current_time_nanos),
   )
 }
+
+///|
+/// |
+pub struct TracerProvider {
+  provide_tracer_fn : () -> Tracer
+}
+
+///|
+/// get Tracer from TracerProvider
+pub fn TracerProvider::tracer(self : TracerProvider) -> Tracer {
+  (self.provide_tracer_fn)()
+}
+
+///|
+let global_tracer_provider : Ref[TracerProvider] = Ref::new(TracerProvider::{
+  provide_tracer_fn: () => abort("Global TracerProvider is not set."),
+})
+
+///|
+/// set global TracerProvider
+pub fn TracerProvider::set_global_provider(provider : TracerProvider) -> Unit {
+  global_tracer_provider.swap(Ref::new(provider))
+}
+
+///|
+/// get global TracerProvider
+pub fn TracerProvider::get_global_tracer() -> TracerProvider {
+  global_tracer_provider.val
+}

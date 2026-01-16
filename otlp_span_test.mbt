@@ -480,7 +480,7 @@ test "spans_to_resource_spans_json handles different span kinds" {
 
 ///|
 test "spans_to_resource_spans_json includes timestamps" {
-  let span = create_basic_span("test-span").end(end_time=2000000000L)
+  let span = create_basic_span("test-span").end(end_time_ns=2000000000L)
   let spans = [span]
   let json = spans_to_resource_spans_json(spans)
   assert_true(json.contains("startTimeUnixNano"))

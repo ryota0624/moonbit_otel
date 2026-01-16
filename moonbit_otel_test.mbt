@@ -252,7 +252,7 @@ test "Span::end marks the span as ended" {
     resource,
     tracer_identifier,
     None,
-  ).end(end_time=3000L)
+  ).end(end_time_ns=3000L)
   assert_true(span.is_ended())
   assert_eq(span.duration(), Some(2000L))
 }
@@ -314,7 +314,7 @@ test "SpanBuilder creates span with attributes" {
     .kind(SpanKind::Client)
     .attribute("http.url", AttributeValue::String("https://example.com"))
     .attribute("http.status_code", AttributeValue::Int(200))
-    .start_time(5000L)
+    .start_time_ns(5000L)
     .start()
   assert_eq(span.name, "http-request")
   assert_eq(span.kind, SpanKind::Client)

@@ -525,8 +525,8 @@ pub fn Span::set_status(self : Span, status : SpanStatus) -> Span {
 // End the Span with the given timestamp
 
 ///|
-pub fn Span::end(self : Span, end_time? : Int64 = current_time_nanos()) -> Span {
-  { ..self, end_time_unix_nano: Some(end_time) }
+pub fn Span::end(self : Span, end_time_ns? : Int64 = current_time_nanos()) -> Span {
+  { ..self, end_time_unix_nano: Some(end_time_ns) }
 }
 
 // Check if the Span has ended

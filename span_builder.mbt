@@ -92,7 +92,7 @@ pub fn SpanBuilder::attributes(
 // Set the start time
 
 ///|
-pub fn SpanBuilder::start_time(
+pub fn SpanBuilder::start_time_ns(
   self : SpanBuilder,
   start_time : Int64,
 ) -> SpanBuilder {

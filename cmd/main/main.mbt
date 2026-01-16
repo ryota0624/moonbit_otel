@@ -80,7 +80,7 @@ pub async fn run_example(
         "http.user_agent", "Mozilla/5.0 (compatible; DemoClient/1.0)",
       ),
     )
-    .start_time(@otel.current_time_nanos())
+    .start_time_ns(@otel.current_time_nanos())
     .start()
 
   // イベントの追加
@@ -103,10 +103,10 @@ pub async fn run_example(
       "db.statement",
       @otel.AttributeValue::String("SELECT * FROM users"),
     )
-    .start_time(@otel.current_time_nanos())
+    .start_time_ns(@otel.current_time_nanos())
     .start()
     .set_status(@otel.SpanStatus::Ok)
-    .end(end_time=@otel.current_time_nanos() + 5000000)
+    .end(end_time_ns=@otel.current_time_nanos() + 5000000)
   let child_span = child_span.add_event(
     tracer.span_event(
       "query_executed",
@@ -117,7 +117,7 @@ pub async fn run_example(
   // 親Spanを終了
   let parent_span = parent_span
     .set_status(@otel.SpanStatus::Ok)
-    .end(end_time=@otel.current_time_nanos() + 10000000)
+    .end(end_time_ns=@otel.current_time_nanos() + 10000000)
 
   // link用の別Spanを作成
   let other_span = tracer
