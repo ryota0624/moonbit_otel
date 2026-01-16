@@ -66,12 +66,7 @@ pub async fn run_example(
     .with_string("environment", "development")
 
   // Tracerの作成
-  let tracer = @otel.Tracer::new(
-    "demo-tracer",
-    "1.0.0",
-    resource,
-    @otel.rand_by_current_time(),
-  )
+  let tracer = @otel.Tracer::new("demo-tracer", "1.0.0", resource)
 
   // 親Spanの作成
   let parent_span = tracer

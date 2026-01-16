@@ -75,7 +75,7 @@ pub struct TraceState {
 ///|
 pub fn TraceState::to_http_header(self : TraceState) -> String {
   self.map
-  .iterator()
+  .iter()
   .map(fn(kv) {
     let key = kv.0
     let value = kv.1
@@ -126,7 +126,7 @@ pub fn TraceState::insert(
   self : TraceState,
   key : String,
   value : String,
-) -> TraceState raise {
+) -> TraceState {
   // TODO: check value validity
   let new_map = self.map.copy()
   new_map.set(key, value)
@@ -610,7 +610,7 @@ pub fn get_current_time_ms() -> Int64 {
 
 ///|
 #cfg(target="native")
-pub fn get_current_time_ms() -> Int64 {
+fn get_current_time_ms() -> Int64 {
   @async.now()
 }
 

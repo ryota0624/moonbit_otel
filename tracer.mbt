@@ -78,7 +78,7 @@ pub fn Tracer::new(
   name : String,
   version : String,
   resource : Resource,
-  rand : @random.Rand,
+  rand? : @random.Rand = rand_by_current_time(),
 ) -> Tracer {
   let config = TracerOptions::default(rand)
   { identifier: { name, version }, resource, config }

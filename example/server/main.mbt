@@ -8,6 +8,7 @@
 // cr.jaegertracing.io/jaegertracing/jaeger:2.13.0
 // moon run --target native .
 // repeat 10 curl -v http://localhost:8000
+#cfg(target="native")
 async fn main {
   let protobuf_provider = @moonbit_otel.protobuf_http_client_provider()
   let otlp_config = @moonbit_otel.OTLPExporterOptions::http_protobuf(
@@ -23,7 +24,6 @@ async fn main {
     "demo-tracer",
     "1.0.0",
     resource,
-    @moonbit_otel.rand_by_current_time(),
   )
   let _ = @async.with_task_group(fn(group) {
     group.add_defer(async fn() { otlp_exporter.shutdown() })
@@ -47,7 +47,14 @@ async fn main {
   println("Server has stopped.")
 }
 
+#cfg(not(target="native"))
+fn main {
+  println("This example is only supported on native target.")
+  panic()  
+}
+
 ///|
+#cfg(target="native")
 async fn send_span(
   req : @http.Request,
   tracer : @moonbit_otel.Tracer,
