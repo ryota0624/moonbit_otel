@@ -14,7 +14,7 @@
 #cfg(target="js")
 async fn main {
   // Using JSON format
-  let json_provider = @otel_js.json_http_client_provider()
+  let json_provider = @otel.json_http_client_provider()
   let json_config = @otel.OTLPExporterOptions::http_json(
     json_provider,
     endpoint="http://localhost:4318/v1/traces",
@@ -22,7 +22,7 @@ async fn main {
   run_example(json_config, print=println)
 
   // Using Protobuf format
-  let protobuf_provider = @otel_js.protobuf_http_client_provider()
+  let protobuf_provider = @otel.protobuf_http_client_provider()
   let protobuf_config = @otel.OTLPExporterOptions::http_protobuf(
     protobuf_provider,
     endpoint="http://localhost:4318/v1/traces",
@@ -36,7 +36,7 @@ async fn main {
 #cfg(target="native")
 async fn main {
   // Using JSON format
-  let json_provider = @otel_native.json_http_client_provider()
+  let json_provider = @otel.json_http_client_provider()
   let json_config = @otel.OTLPExporterOptions::http_json(
     json_provider,
     endpoint="http://localhost:4318/v1/traces",
@@ -44,7 +44,7 @@ async fn main {
   run_example(json_config, print=println)
 
   // Using Protobuf format
-  let protobuf_provider = @otel_native.protobuf_http_client_provider()
+  let protobuf_provider = @otel.protobuf_http_client_provider()
   let protobuf_config = @otel.OTLPExporterOptions::http_protobuf(
     protobuf_provider,
     endpoint="http://localhost:4318/v1/traces",

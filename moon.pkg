@@ -4,6 +4,7 @@ import {
   "ryota0624/opentelemetry_proto_mbt/opentelemetry/proto/common/v1" as @otel_common,
   "moonbitlang/async",
   "moonbitlang/async/aqueue",
+  "moonbitlang/async/http",
   "moonbitlang/protobuf",
 }
 

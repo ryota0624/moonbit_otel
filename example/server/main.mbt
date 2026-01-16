@@ -9,7 +9,7 @@
 // moon run --target native .
 // repeat 10 curl -v http://localhost:8000
 async fn main {
-  let protobuf_provider = @otel_native.protobuf_http_client_provider()
+  let protobuf_provider = @moonbit_otel.protobuf_http_client_provider()
   let otlp_config = @moonbit_otel.OTLPExporterOptions::http_protobuf(
     protobuf_provider,
     endpoint="http://localhost:4318/v1/traces",

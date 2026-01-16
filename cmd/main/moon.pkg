@@ -1,8 +1,6 @@
 import {
   "ryota0624/moonbit_otel" as @otel,
   "moonbitlang/async",
-  "ryota0624/moonbit_otel/js" as @otel_js,
-  "ryota0624/moonbit_otel/native" as @otel_native,
 }
 
 options(

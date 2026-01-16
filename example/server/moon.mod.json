@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "deps": {
     "moonbitlang/async": "0.15.0",
-    "oboard/mocket": "0.6.5",
     "ryota0624/moonbit_otel": {
       "path": "../.."
     }
