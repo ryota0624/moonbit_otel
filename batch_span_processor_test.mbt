@@ -1,4 +1,4 @@
-// Tests for BatchExporter export_spans behavior
+// Tests for BatchSpanProcessor behavior
 // These tests verify the batching and delayed export functionality
 
 // Mock SpanExporter for testing
@@ -71,20 +71,22 @@ fn create_export_test_span(name : String) -> Span {
 async test "batch size of 2 triggers immediate flush when reached" {
   let mock = MockExporter::new()
   let mock_ref : &SpanExporter = mock as &SpanExporter
-  let base_options : BatchExporterOptions = Default::default()
+  let base_options : BatchSpanProcessorOptions = Default::default()
   let options = base_options
     .with_max_export_batch_size(2)
     .with_schedule_delay_millis(1000)
-  let batch_exporter = BatchExporter::new(mock_ref, options~)
+  let processor = BatchSpanProcessor::new(mock_ref, options~)
+  let processor_ref : &SpanProcessor = processor as &SpanProcessor
   @async.with_task_group(async fn(group) {
     group.spawn_bg(async fn() {
-      let span = create_export_test_span("test-span-1")
-      let span2 = create_export_test_span("test-span-2")
-      batch_exporter.export_spans([span, span2]) catch {
-        _ => ()
-      }
+      processor.start()
     })
-    @async.sleep(10) // Allow async export to complete
+    @async.sleep(10) // Allow processor to start
+    let span = create_export_test_span("test-span-1")
+    let span2 = create_export_test_span("test-span-2")
+    processor_ref.on_span_end(span)
+    processor_ref.on_span_end(span2)
+    @async.sleep(50) // Allow async export to complete
     assert_eq(mock.export_calls.length(), 1)
     assert_eq(mock.export_calls[0].length(), 2)
   })
@@ -96,18 +98,19 @@ async test "batch size of 2 triggers immediate flush when reached" {
 async test "batch size of 10 schedules delayed flush when not reached" {
   let mock = MockExporter::new()
   let mock_ref : &SpanExporter = mock as &SpanExporter
-  let base_options : BatchExporterOptions = Default::default()
+  let base_options : BatchSpanProcessorOptions = Default::default()
   let options = base_options
     .with_max_export_batch_size(10)
     .with_schedule_delay_millis(1000)
-  let batch_exporter : &SpanExporter = BatchExporter::new(mock_ref, options~)
+  let processor = BatchSpanProcessor::new(mock_ref, options~)
+  let processor_ref : &SpanProcessor = processor as &SpanProcessor
   @async.with_task_group(async fn(group) {
     group.spawn_bg(async fn() {
-      let span = create_export_test_span("test-span-1")
-      batch_exporter.export_spans([span]) catch {
-        _ => ()
-      }
+      processor.start()
     })
+    @async.sleep(10) // Allow processor to start
+    let span = create_export_test_span("test-span-1")
+    processor_ref.on_span_end(span)
     @async.sleep(10) // Allow async timeout to be scheduled
     assert_true(mock.export_calls.is_empty())
     @async.sleep(1000)

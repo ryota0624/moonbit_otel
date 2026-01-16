@@ -1,5 +1,5 @@
 ///|
-trait SpanProcessor {
+pub trait SpanProcessor {
   on_span_start(Self, span : Span) -> Unit noraise
   on_span_end(Self, span : Span) -> Unit noraise
   async shutdown(Self) -> Unit
@@ -29,16 +29,6 @@ pub struct BatchSpanProcessor {
 pub async fn[T, E : Error] suspend(
   f : ((T) -> Unit, (E) -> Unit) -> Unit,
 ) -> T raise E = "%async.suspend"
-
-///|
-#cfg(target="js")
-#external
-priv type JSTimer
-
-///|
-#cfg(target="js")
-extern "js" fn js_set_timeout(f : () -> Unit, duration~ : Int) -> JSTimer =
-  #| (f, duration) => setTimeout(f, duration)
 
 ///|
 pub impl Default for BatchSpanProcessorOptions with default() -> BatchSpanProcessorOptions {
