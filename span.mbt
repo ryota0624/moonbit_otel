@@ -75,7 +75,7 @@ pub struct TraceState {
 ///|
 pub fn TraceState::to_http_header(self : TraceState) -> String {
   self.map
-  .iterator()
+  .iter()
   .map(fn(kv) {
     let key = kv.0
     let value = kv.1
@@ -126,7 +126,7 @@ pub fn TraceState::insert(
   self : TraceState,
   key : String,
   value : String,
-) -> TraceState raise {
+) -> TraceState {
   // TODO: check value validity
   let new_map = self.map.copy()
   new_map.set(key, value)
@@ -271,8 +271,8 @@ pub struct SpanEvent {
 ///|
 pub fn SpanEvent::new(
   name : String,
-  timestamp : Int64,
   attributes : Attributes,
+  timestamp? : Int64 = current_time_nanos(),
 ) -> SpanEvent {
   { name, timestamp, attributes }
 }
@@ -307,6 +307,7 @@ pub struct Span {
   status : SpanStatus
   resource : Resource
   tracer_identifier : TracerIdentifier
+  on_end : ((Span) -> Unit)?
 }
 
 ///|
@@ -460,6 +461,7 @@ pub fn Span::new(
   resource : Resource,
   tracer_identifier : TracerIdentifier,
   parent_span_id : SpanID?,
+  on_end? : (Span) -> Unit,
 ) -> Span {
   {
     traceId: context.trace_id,
@@ -479,6 +481,7 @@ pub fn Span::new(
     dropped_events_count: 0,
     resource,
     tracer_identifier,
+    on_end,
   }
 }
 
@@ -525,8 +528,16 @@ pub fn Span::set_status(self : Span, status : SpanStatus) -> Span {
 // End the Span with the given timestamp
 
 ///|
-pub fn Span::end(self : Span, end_time : Int64) -> Span {
-  { ..self, end_time_unix_nano: Some(end_time) }
+pub fn Span::end(
+  self : Span,
+  end_time_ns? : Int64 = current_time_nanos(),
+) -> Span {
+  let end_span = { ..self, end_time_unix_nano: Some(end_time_ns) }
+  guard end_span.on_end is Some(on_end_fn) else {
+    return end_span
+  }
+  on_end_fn(end_span)
+  end_span
 }
 
 // Check if the Span has ended
@@ -610,7 +621,7 @@ pub fn get_current_time_ms() -> Int64 {
 
 ///|
 #cfg(target="native")
-pub fn get_current_time_ms() -> Int64 {
+fn get_current_time_ms() -> Int64 {
   @async.now()
 }
 

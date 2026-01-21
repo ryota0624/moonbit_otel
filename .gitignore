@@ -5,3 +5,5 @@ target/
 wit/deps/
 tmp
 protoc-gen-mbt.exe
+_build
+target

@@ -1,0 +1,8 @@
+import {
+  "ryota0624/moonbit_otel" as @otel,
+  "moonbitlang/async",
+}
+
+options(
+  "is-main": true,
+)

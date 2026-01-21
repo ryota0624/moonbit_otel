@@ -5,77 +5,77 @@ priv struct JsonHttpClientOnAsyncHttp {}
 priv struct ProtobufHttpClientOnAsyncHttp {}
 
 ///|
-pub fn json_http_client_provider() -> &@lib.JsonHttpClientProvider {
+pub fn json_http_client_provider() -> &JsonHttpClientProvider {
   JsonHttpClientOnAsyncHttp::{  }
 }
 
 ///|
-pub fn protobuf_http_client_provider() -> &@lib.ProtobufHttpClientProvider {
+pub fn protobuf_http_client_provider() -> &ProtobufHttpClientProvider {
   ProtobufHttpClientOnAsyncHttp::{  }
 }
 
 ///|
-impl @lib.JsonHttpClient for JsonHttpClientOnAsyncHttp with http_post_json(
+impl JsonHttpClient for JsonHttpClientOnAsyncHttp with http_post_json(
   _ : JsonHttpClientOnAsyncHttp,
   url : String,
   body : String,
   headers : Map[String, String],
-) -> Result[@lib.HttpResponse, @lib.HttpError] {
+) -> Result[HttpResponse, HttpError] {
   @async.with_timeout(5000, async fn() {
     try {
       // Convert String to UTF-8 bytes for HTTP request
       let utf8_bytes = @encoding/utf8.encode(body)
       let (response, data) = @http.post(url, utf8_bytes, headers~)
       if response.code >= 200 && response.code < 300 {
-        Ok(@lib.HttpResponse::{
+        Ok(HttpResponse::{
           status_code: response.code,
           body: data.text(),
           error_code: None,
         })
       } else {
-        Err(@lib.HttpError::http_status(response.code, data.text()))
+        Err(HttpError::http_status(response.code, data.text()))
       }
     } catch {
-      err => Err(@lib.HttpError::network(err.to_string()))
+      err => Err(HttpError::network(err.to_string()))
     }
   }) // 5 seconds timeout
 }
 
 ///|
-impl @lib.JsonHttpClientProvider for JsonHttpClientOnAsyncHttp with get_json_client(
+impl JsonHttpClientProvider for JsonHttpClientOnAsyncHttp with get_json_client(
   _ : JsonHttpClientOnAsyncHttp,
-) -> &@lib.JsonHttpClient {
+) -> &JsonHttpClient {
   JsonHttpClientOnAsyncHttp::{  }
 }
 
 ///|
-impl @lib.ProtobufHttpClient for ProtobufHttpClientOnAsyncHttp with http_post_protobuf(
+impl ProtobufHttpClient for ProtobufHttpClientOnAsyncHttp with http_post_protobuf(
   _ : ProtobufHttpClientOnAsyncHttp,
   url : String,
   body : Bytes,
   headers : Map[String, String],
-) -> Result[@lib.HttpResponse, @lib.HttpError] {
+) -> Result[HttpResponse, HttpError] {
   @async.with_timeout(5000, async fn() {
     try {
       let (response, data) = @http.post(url, body, headers~)
       if response.code >= 200 && response.code < 300 {
-        Ok(@lib.HttpResponse::{
+        Ok(HttpResponse::{
           status_code: response.code,
           body: data.text(),
           error_code: None,
         })
       } else {
-        Err(@lib.HttpError::http_status(response.code, data.text()))
+        Err(HttpError::http_status(response.code, data.text()))
       }
     } catch {
-      err => Err(@lib.HttpError::network(err.to_string()))
+      err => Err(HttpError::network(err.to_string()))
     }
   }) // 5 seconds timeout
 }
 
 ///|
-impl @lib.ProtobufHttpClientProvider for ProtobufHttpClientOnAsyncHttp with get_protobuf_client(
+impl ProtobufHttpClientProvider for ProtobufHttpClientOnAsyncHttp with get_protobuf_client(
   _ : ProtobufHttpClientOnAsyncHttp,
-) -> &@lib.ProtobufHttpClient {
+) -> &ProtobufHttpClient {
   ProtobufHttpClientOnAsyncHttp::{  }
 }

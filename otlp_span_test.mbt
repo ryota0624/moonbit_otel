@@ -80,7 +80,7 @@ fn create_span_with_events(name : String) -> Span {
   let event_attrs = Attributes::default()
     .set("event.type", AttributeValue::String("error"))
     .set("event.message", AttributeValue::String("Connection timeout"))
-  let event = SpanEvent::new("error-occurred", 1000000L, event_attrs)
+  let event = SpanEvent::new("error-occurred", timestamp=1000000L, event_attrs)
   span.add_event(event)
 }
 
@@ -480,7 +480,7 @@ test "spans_to_resource_spans_json handles different span kinds" {
 
 ///|
 test "spans_to_resource_spans_json includes timestamps" {
-  let span = create_basic_span("test-span").end(2000000000L)
+  let span = create_basic_span("test-span").end(end_time_ns=2000000000L)
   let spans = [span]
   let json = spans_to_resource_spans_json(spans)
   assert_true(json.contains("startTimeUnixNano"))
