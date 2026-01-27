@@ -185,17 +185,6 @@ pub struct BatchExporter {
   priv schedule_queue : @async.Queue[Unit]
 }
 
-
-///|
-#cfg(target="js")
-#external
-priv type JSTimer
-
-///|
-#cfg(target="js")
-extern "js" fn js_set_timeout(f : () -> Unit, duration~ : Int) -> JSTimer =
-  #| (f, duration) => setTimeout(f, duration)
-
 ///|
 pub impl Default for BatchExporterOptions with default() -> BatchExporterOptions {
   {

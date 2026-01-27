@@ -24,7 +24,7 @@ impl JsonHttpClient for JsonHttpClientOnAsyncHttp with http_post_json(
   @async.with_timeout(5000, async fn() {
     try {
       // Convert String to UTF-8 bytes for HTTP request
-      let utf8_bytes = @encoding/utf8.encode(body)
+      let utf8_bytes = @utf8.encode(body)
       let (response, data) = @http.post(url, utf8_bytes, headers~)
       if response.code >= 200 && response.code < 300 {
         Ok(HttpResponse::{

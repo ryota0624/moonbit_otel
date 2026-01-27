@@ -6,10 +6,14 @@ import {
   "moonbitlang/async/aqueue",
   "moonbitlang/async/http",
   "moonbitlang/protobuf",
+  "moonbitlang/core/random",
+  "moonbitlang/core/cmp",
+  "moonbitlang/core/buffer",
+  "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8"
 }
 
 options(
-  deps: [ "moonbitlang/core/random" ],
   "is-main": false,
   "supported-targets": [ "js", "native" ],
   targets: {
