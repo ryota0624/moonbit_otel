@@ -57,7 +57,7 @@ pub struct Attributes {
 ///|
 impl ToJson for Attributes with to_json(self : Attributes) -> Json {
   self.map
-  .iterator()
+  .iter()
   .map(fn(kv) {
     let key = kv.0
     let value = kv.1
@@ -213,7 +213,7 @@ pub fn Attributes::to_protobuf(
   self : Attributes,
 ) -> Array[@otel_common.KeyValue] {
   self.map
-  .iterator()
+  .iter()
   .map(fn(kv) {
     let key = kv.0
     let value = kv.1
