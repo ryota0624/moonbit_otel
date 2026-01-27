@@ -16,4 +16,8 @@ options(
     "otlp_http_js.mbt": [ "js" ],
     "otlp_http_native.mbt": [ "native" ],
   },
+  description: "OpenTelemetry SDK for Moonbit",
+  license: "Apache-2.0",
+  readme: "README.md",
+  version: "0.0.1",
 )
