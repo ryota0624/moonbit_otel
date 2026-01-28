@@ -1,6 +1,6 @@
 {
   "name": "ryota0624/opentelemetry_proto_mbt",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "readme": "README.mbt.md",
   "repository": "https://github.com/ryota0624/moonbit_otel",
   "license": "Apache-2.0",
@@ -8,6 +8,6 @@
   "description": "",
   "source": "src",
   "deps": {
-    "moonbitlang/protobuf": "0.1.0"
+    "moonbitlang/protobuf": "0.1.1"
   }
 }
