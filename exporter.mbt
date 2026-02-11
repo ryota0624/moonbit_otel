@@ -267,7 +267,7 @@ pub fn BatchExporter::new(
 
 ///|
 pub async fn BatchExporter::start(self : BatchExporter) -> Unit {
-  @async.with_task_group(async fn(group) {
+  @async.with_task_group(fn(group) {
     group.spawn_loop(async fn() {
       self.schedule_queue.get()
       self.schedule_flush() catch {

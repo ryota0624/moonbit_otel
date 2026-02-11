@@ -2,7 +2,7 @@
   "name": "ryota0624/moonbit_otel",
   "version": "0.0.8",
   "deps": {
-    "moonbitlang/async": "0.15.0",
+    "moonbitlang/async": "0.16.6",
     "ryota0624/opentelemetry_proto_mbt": "0.0.2",
     "moonbitlang/protobuf": "0.1.1"
   },

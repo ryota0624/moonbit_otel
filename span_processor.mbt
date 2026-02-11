@@ -112,7 +112,7 @@ pub fn BatchSpanProcessor::new(
 
 ///|
 pub async fn BatchSpanProcessor::start(self : BatchSpanProcessor) -> Unit {
-  @async.with_task_group(async fn(group) {
+  @async.with_task_group(fn(group) {
     group.spawn_loop(async fn() {
       self.schedule_queue.get()
       self.schedule_flush() catch {
