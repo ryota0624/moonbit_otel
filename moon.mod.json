@@ -1,6 +1,6 @@
 {
   "name": "ryota0624/moonbit_otel",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "deps": {
     "moonbitlang/async": "0.15.0",
     "ryota0624/opentelemetry_proto_mbt": "0.0.2",
@@ -9,13 +9,7 @@
   "readme": "README.md",
   "repository": "https://github.com/ryota0624/moonbit_otel",
   "license": "Apache-2.0",
-  "keywords": [
-    "otel",
-    "opentelemetry",
-    "tracing",
-    "metrics",
-    "logging"
-  ],
+  "keywords": ["otel", "opentelemetry", "tracing", "metrics", "logging"],
   "description": "",
   "preferred-target": "native"
 }
