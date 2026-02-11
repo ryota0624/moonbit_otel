@@ -78,9 +78,7 @@ async test "batch size of 2 triggers immediate flush when reached" {
   let processor = BatchSpanProcessor::new(mock_ref, options~)
   let processor_ref : &SpanProcessor = processor as &SpanProcessor
   @async.with_task_group(async fn(group) {
-    group.spawn_bg(async fn() {
-      processor.start()
-    })
+    group.spawn_bg(async fn() { processor.start() })
     @async.sleep(10) // Allow processor to start
     let span = create_export_test_span("test-span-1")
     let span2 = create_export_test_span("test-span-2")
@@ -105,9 +103,7 @@ async test "batch size of 10 schedules delayed flush when not reached" {
   let processor = BatchSpanProcessor::new(mock_ref, options~)
   let processor_ref : &SpanProcessor = processor as &SpanProcessor
   @async.with_task_group(async fn(group) {
-    group.spawn_bg(async fn() {
-      processor.start()
-    })
+    group.spawn_bg(async fn() { processor.start() })
     @async.sleep(10) // Allow processor to start
     let span = create_export_test_span("test-span-1")
     processor_ref.on_span_end(span)

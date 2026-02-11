@@ -210,9 +210,9 @@ pub fn TracerProvider::new(
   processors? : Array[&SpanProcessor] = [],
 ) -> TracerProvider {
   TracerProvider::{
-    tracer_factory: (opts : TracerOptions) => Tracer::with_options(
-      name, version, resource, opts,
-    ),
+    tracer_factory: (opts : TracerOptions) => {
+      Tracer::with_options(name, version, resource, opts)
+    },
     span_processors: processors,
     options,
   }
@@ -242,9 +242,9 @@ pub async fn TracerProvider::force_flush(self : TracerProvider) -> Unit {
 
 ///|
 let global_tracer_provider : Ref[TracerProvider] = Ref::new(TracerProvider::{
-  tracer_factory: (_ : TracerOptions) => abort(
-    "Global TracerProvider is not set.",
-  ),
+  tracer_factory: (_ : TracerOptions) => {
+    abort("Global TracerProvider is not set.")
+  },
   span_processors: [],
   options: TracerOptions::default(),
 })

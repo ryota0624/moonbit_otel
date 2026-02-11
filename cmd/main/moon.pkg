@@ -1,5 +1,5 @@
 import {
-  "ryota0624/moonbit_otel" as @otel,
+  "ryota0624/moonbit_otel" @otel,
   "moonbitlang/async",
 }
 

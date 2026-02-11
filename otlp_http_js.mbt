@@ -23,11 +23,9 @@ async fn http_post_internal(
   // Call the native HTTP function via FFI
   // The actual implementation will be provided by the JavaScript/Node.js runtime
   // See http_ffi.js for the JavaScript implementation
-  let response_json_str = suspend((resolve, _) => http_post_impl(
-    request_json,
-    500,
-    responseStr => resolve(responseStr),
-  ))
+  let response_json_str = suspend((resolve, _) => {
+    http_post_impl(request_json, 500, responseStr => resolve(responseStr))
+  })
 
   // Parse response: String -> Json -> HttpResponse
   try {
@@ -38,14 +36,11 @@ async fn http_post_internal(
       return Err(HttpError::network(response.body))
     } else if response.status_code >= 400 {
       // HTTP error responses
-      return Err(
-        HttpError::http_status(response.status_code, response.body),
-      )
+      return Err(HttpError::http_status(response.status_code, response.body))
     }
     Ok(response)
   } catch {
-    _err =>
-      Err(HttpError::invalid_response("Failed to parse HTTP response"))
+    _err => Err(HttpError::invalid_response("Failed to parse HTTP response"))
   }
 }
 
@@ -87,13 +82,11 @@ async fn http_post_protobuf_internal(
   let headers_json = headers.to_json().stringify()
 
   // Call the native HTTP function via FFI with binary body
-  let response_json_str = suspend((resolve, _) => http_post_protobuf_impl(
-    url,
-    body,
-    headers_json,
-    500,
-    responseStr => resolve(responseStr),
-  ))
+  let response_json_str = suspend((resolve, _) => {
+    http_post_protobuf_impl(url, body, headers_json, 500, responseStr => {
+      resolve(responseStr)
+    })
+  })
 
   // Parse response: String -> Json -> HttpResponse
   try {
@@ -104,14 +97,11 @@ async fn http_post_protobuf_internal(
       return Err(HttpError::network(response.body))
     } else if response.status_code >= 400 {
       // HTTP error responses
-      return Err(
-        HttpError::http_status(response.status_code, response.body),
-      )
+      return Err(HttpError::http_status(response.status_code, response.body))
     }
     Ok(response)
   } catch {
-    _err =>
-      Err(HttpError::invalid_response("Failed to parse HTTP response"))
+    _err => Err(HttpError::invalid_response("Failed to parse HTTP response"))
   }
 }
 

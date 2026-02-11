@@ -1,7 +1,7 @@
 import {
-  "ryota0624/opentelemetry_proto_mbt/opentelemetry/proto/trace/v1" as @trace,
-  "ryota0624/opentelemetry_proto_mbt/opentelemetry/proto/resource/v1" as @resource,
-  "ryota0624/opentelemetry_proto_mbt/opentelemetry/proto/common/v1" as @otel_common,
+  "ryota0624/opentelemetry_proto_mbt/opentelemetry/proto/trace/v1" @trace,
+  "ryota0624/opentelemetry_proto_mbt/opentelemetry/proto/resource/v1" @resource,
+  "ryota0624/opentelemetry_proto_mbt/opentelemetry/proto/common/v1" @otel_common,
   "moonbitlang/async",
   "moonbitlang/async/aqueue",
   "moonbitlang/async/http",
@@ -10,18 +10,18 @@ import {
   "moonbitlang/core/cmp",
   "moonbitlang/core/buffer",
   "moonbitlang/core/json",
-  "moonbitlang/core/encoding/utf8"
+  "moonbitlang/core/encoding/utf8",
 }
 
 options(
+  description: "OpenTelemetry SDK for Moonbit",
   "is-main": false,
+  license: "Apache-2.0",
+  readme: "README.md",
   "supported-targets": [ "js", "native" ],
   targets: {
     "otlp_http_js.mbt": [ "js" ],
     "otlp_http_native.mbt": [ "native" ],
   },
-  description: "OpenTelemetry SDK for Moonbit",
-  license: "Apache-2.0",
-  readme: "README.md",
   version: "0.0.3",
 )

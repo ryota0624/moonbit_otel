@@ -533,9 +533,7 @@ pub fn Span::end(
   end_time_ns? : Int64 = current_time_nanos(),
 ) -> Span {
   let end_span = { ..self, end_time_unix_nano: Some(end_time_ns) }
-  guard end_span.on_end is Some(on_end_fn) else {
-    return end_span
-  }
+  guard end_span.on_end is Some(on_end_fn) else { return end_span }
   on_end_fn(end_span)
   end_span
 }

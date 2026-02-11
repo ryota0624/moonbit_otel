@@ -164,6 +164,7 @@ pub impl SpanProcessor for BatchSpanProcessor with on_span_start(
   _ : BatchSpanProcessor,
   _ : Span,
 ) -> Unit {
+
 }
 
 ///|
