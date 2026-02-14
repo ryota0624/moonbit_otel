@@ -1,0 +1,53 @@
+name: Test MoonBit OTEL Library
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    name: Check Library Compilation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> $GITHUB_PATH
+
+      - name: Update dependencies
+        run: moon update
+
+      - name: Check library for errors and warnings
+        run: |
+          echo "::group::Running moon check"
+          moon check --deny-warn
+          echo "::endgroup::"
+
+          echo "::group::Building library (JS target)"
+          moon build --target js
+          echo "::endgroup::"
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> $GITHUB_PATH
+
+      - name: Update dependencies
+        run: moon update
+
+      - name: Run tests (JS target)
+        run: |
+          echo "::group::Running tests with JS target"
+          moon test --target js
+          echo "::endgroup::"
