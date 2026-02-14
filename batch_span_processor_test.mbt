@@ -6,12 +6,11 @@
 ///|
 struct MockExporter {
   export_calls : Array[Array[Span]]
-  mut shutdown_called : Bool
 }
 
 ///|
 fn MockExporter::new() -> MockExporter {
-  { export_calls: [], shutdown_called: false }
+  { export_calls: [] }
 }
 
 ///|
