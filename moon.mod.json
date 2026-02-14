@@ -1,6 +1,6 @@
 {
   "name": "ryota0624/moonbit_otel",
-  "version": "0.0.8",
+  "version": "0.1.0",
   "deps": {
     "mizchi/x": "0.1.3",
     "moonbitlang/async": "0.16.6",
