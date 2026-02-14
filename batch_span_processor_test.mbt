@@ -22,8 +22,8 @@ pub fn MockExporter::export_spans(
 }
 
 ///|
-pub fn MockExporter::shutdown(self : MockExporter) -> Unit {
-  self.shutdown_called = true
+pub fn MockExporter::shutdown(_ : MockExporter) -> Unit {
+
 }
 
 ///|
