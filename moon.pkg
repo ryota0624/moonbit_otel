@@ -4,13 +4,13 @@ import {
   "ryota0624/opentelemetry_proto_mbt/opentelemetry/proto/common/v1" @otel_common,
   "moonbitlang/async",
   "moonbitlang/async/aqueue",
-  "moonbitlang/async/http",
+  "mizchi/x/http" @http,
   "moonbitlang/protobuf",
   "moonbitlang/core/random",
   "moonbitlang/core/cmp",
   "moonbitlang/core/buffer",
   "moonbitlang/core/json",
-  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/encoding/utf8" @utf8,
 }
 
 options(
@@ -19,9 +19,6 @@ options(
   license: "Apache-2.0",
   readme: "README.md",
   "supported-targets": [ "js", "native" ],
-  targets: {
-    "otlp_http_js.mbt": [ "js" ],
-    "otlp_http_native.mbt": [ "native" ],
-  },
-  version: "0.0.3",
+  targets: { },
+  version: "0.0.9",
 )

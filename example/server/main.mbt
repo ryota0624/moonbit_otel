@@ -20,7 +20,9 @@ async fn main {
     .with_string(@moonbit_otel.service_name, "demo-service")
     .with_string(@moonbit_otel.service_version, "1.0.0")
     .with_string("environment", "development")
-  let processor_options = @moonbit_otel.BatchSpanProcessorOptions::default().enable_debug_log(println)
+  let processor_options = @moonbit_otel.BatchSpanProcessorOptions::default().enable_debug_log(
+    println,
+  )
   let processor = @moonbit_otel.BatchSpanProcessor::new(
     otlp_exporter,
     options=processor_options,

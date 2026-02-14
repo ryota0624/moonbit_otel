@@ -11,29 +11,6 @@
 // moon run --target js cmd/main/main.mbt
 
 ///|
-#cfg(target="js")
-async fn main {
-  // Using JSON format
-  let json_provider = @otel.json_http_client_provider()
-  let json_config = @otel.OTLPExporterOptions::http_json(
-    json_provider,
-    endpoint="http://localhost:4318/v1/traces",
-  ).enable_debug_log(print=println)
-  run_example(json_config, print=println)
-
-  // Using Protobuf format
-  let protobuf_provider = @otel.protobuf_http_client_provider()
-  let protobuf_config = @otel.OTLPExporterOptions::http_protobuf(
-    protobuf_provider,
-    endpoint="http://localhost:4318/v1/traces",
-  ).enable_debug_log(print=println)
-
-  // Run example with Protobuf (you can change to json_config if needed)
-  run_example(protobuf_config, print=println)
-}
-
-///|
-#cfg(target="native")
 async fn main {
   // Using JSON format
   let json_provider = @otel.json_http_client_provider()

@@ -1,31 +1,31 @@
 ///|
-priv struct JsonHttpClientOnAsyncHttp {}
-
-///|
-priv struct ProtobufHttpClientOnAsyncHttp {}
+priv struct HttpClient {}
 
 ///|
 pub fn json_http_client_provider() -> &JsonHttpClientProvider {
-  JsonHttpClientOnAsyncHttp::{  }
+  HttpClient::{  }
 }
 
 ///|
 pub fn protobuf_http_client_provider() -> &ProtobufHttpClientProvider {
-  ProtobufHttpClientOnAsyncHttp::{  }
+  HttpClient::{  }
 }
 
+// JSON HTTP Client実装
+
 ///|
-impl JsonHttpClient for JsonHttpClientOnAsyncHttp with http_post_json(
-  _ : JsonHttpClientOnAsyncHttp,
+impl JsonHttpClient for HttpClient with http_post_json(
+  _ : HttpClient,
   url : String,
   body : String,
   headers : Map[String, String],
 ) -> Result[HttpResponse, HttpError] {
   @async.with_timeout(5000, async fn() {
     try {
-      // Convert String to UTF-8 bytes for HTTP request
+      // StringをUTF-8 Bytesに変換
       let utf8_bytes = @utf8.encode(body)
       let (response, data) = @http.post(url, utf8_bytes, headers~)
+
       if response.code >= 200 && response.code < 300 {
         Ok(HttpResponse::{
           status_code: response.code,
@@ -38,26 +38,28 @@ impl JsonHttpClient for JsonHttpClientOnAsyncHttp with http_post_json(
     } catch {
       err => Err(HttpError::network(err.to_string()))
     }
-  }) // 5 seconds timeout
+  })
 }
 
 ///|
-impl JsonHttpClientProvider for JsonHttpClientOnAsyncHttp with get_json_client(
-  _ : JsonHttpClientOnAsyncHttp,
-) -> &JsonHttpClient {
-  JsonHttpClientOnAsyncHttp::{  }
+impl JsonHttpClientProvider for HttpClient with get_json_client(_ : HttpClient) -> &JsonHttpClient {
+  HttpClient::{  }
 }
 
+// Protobuf HTTP Client実装
+
 ///|
-impl ProtobufHttpClient for ProtobufHttpClientOnAsyncHttp with http_post_protobuf(
-  _ : ProtobufHttpClientOnAsyncHttp,
+impl ProtobufHttpClient for HttpClient with http_post_protobuf(
+  _ : HttpClient,
   url : String,
   body : Bytes,
   headers : Map[String, String],
 ) -> Result[HttpResponse, HttpError] {
   @async.with_timeout(5000, async fn() {
     try {
+      // Bytesを直接使用
       let (response, data) = @http.post(url, body, headers~)
+
       if response.code >= 200 && response.code < 300 {
         Ok(HttpResponse::{
           status_code: response.code,
@@ -70,12 +72,12 @@ impl ProtobufHttpClient for ProtobufHttpClientOnAsyncHttp with http_post_protobu
     } catch {
       err => Err(HttpError::network(err.to_string()))
     }
-  }) // 5 seconds timeout
+  })
 }
 
 ///|
-impl ProtobufHttpClientProvider for ProtobufHttpClientOnAsyncHttp with get_protobuf_client(
-  _ : ProtobufHttpClientOnAsyncHttp,
+impl ProtobufHttpClientProvider for HttpClient with get_protobuf_client(
+  _ : HttpClient,
 ) -> &ProtobufHttpClient {
-  ProtobufHttpClientOnAsyncHttp::{  }
+  HttpClient::{  }
 }
